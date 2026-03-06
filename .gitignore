@@ -1,0 +1,6 @@
+**.terraform
+**.terraform.lock.*
+*.tfstate
+*.tfstate.backup
+gcp_credentials.json
+.env
