@@ -1,7 +1,11 @@
+import json
 import os
 import sys
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
+
+CHICAGO_TZ = ZoneInfo("America/Chicago")
 
 from dotenv import load_dotenv
 
@@ -10,6 +14,7 @@ load_dotenv(Path(__file__).parent.parent.parent / ".env")
 
 import dlt
 import duckdb
+import gcsfs
 from dlt.common.configuration.specs import GcpServiceAccountCredentials
 from dlt.destinations import filesystem
 
@@ -75,7 +80,7 @@ def run(target_date: date | None = None) -> None:
         target_date: The date to export. Defaults to yesterday.
     """
     if target_date is None:
-        target_date = date.today() - timedelta(days=1)
+        target_date = datetime.now(CHICAGO_TZ).date() - timedelta(days=1)
 
     date_str = target_date.isoformat()
 
@@ -91,6 +96,13 @@ def run(target_date: date | None = None) -> None:
         sa_info = f.read()
     gcp_credentials = GcpServiceAccountCredentials()
     gcp_credentials.parse_native_representation(sa_info)
+
+    # Delete existing date partitions so re-runs are idempotent (no duplicate files)
+    fs = gcsfs.GCSFileSystem(token=json.loads(sa_info))
+    for table in TABLES:
+        partition = f"{bucket_name}/main/{table}/date={date_str}"
+        if fs.exists(partition):
+            fs.rm(partition, recursive=True)
 
     print(f"Exporting data for {date_str} from MotherDuck to GCS ...")
 
@@ -113,6 +125,11 @@ def run(target_date: date | None = None) -> None:
 
     load_info = pipeline.run(source, loader_file_format="parquet")
     print(load_info)
+
+    # Remove dlt internal tracking folders — keep only data Parquet files
+    # Remove all dlt internal tracking folders — keep only data Parquet files
+    for path in fs.glob(f"{bucket_name}/main/_dlt_*"):
+        fs.rm(path, recursive=True)
 
 
 if __name__ == "__main__":
