@@ -8,4 +8,3 @@ gcp_credentials.json
 .venv
 .python-version
 __pycache__/
-uv.lock
