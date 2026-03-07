@@ -13,8 +13,8 @@ Chicago Data Portal (SODA API)
 chicago_to_motherduck/pipeline.py   (dlt REST API source)
   │
   ▼
-MotherDuck  ──  database: chicago_crashes
-                schema:   main
+MotherDuck  ──  database: MOTHERDUCK_DATABASE
+                schema:   MOTHERDUCK_DATASET
                 tables:   crashes | vehicles | people
   │
   ▼
@@ -22,7 +22,7 @@ motherduck_to_gcs/pipeline.py   (dlt filesystem destination)
   │
   ▼
 Google Cloud Storage
-  gs://<bucket>/main/<table>/date=YYYY-MM-DD/<load_id>.parquet
+  gs://<BUCKET_NAME>/<MOTHERDUCK_DATASET>/<table>/date=YYYY-MM-DD/<load_id>.parquet
 ```
 
 ## Project structure
@@ -93,7 +93,8 @@ LOCATION=US
 BUCKET_NAME=your-gcs-bucket-name
 DATASET_ID=chicago_traffic_crashes
 MOTHERDUCK_TOKEN=your-motherduck-pat-token
-MOTHERDUCK_DATABASE=chicago_crashes
+MOTHERDUCK_DATABASE=chicago_crashes         # MotherDuck database name
+MOTHERDUCK_DATASET=main                     # schema inside the database (also used as GCS prefix)
 ```
 
 ### 4. Install dependencies
@@ -120,13 +121,15 @@ To load a specific date:
 uv run chicago_to_motherduck/pipeline.py 2026-03-05
 ```
 
-This creates (or appends to) three tables in MotherDuck:
+This creates (or merges into) three tables in MotherDuck under the schema set by `MOTHERDUCK_DATASET`:
 
-| Table           | Source endpoint  |
-| --------------- | ---------------- |
-| `main.crashes`  | `85ca-t3if.json` |
-| `main.vehicles` | `68nd-jvt3.json` |
-| `main.people`   | `u6pd-qa9d.json` |
+| Table                          | Source endpoint  |
+| ------------------------------ | ---------------- |
+| `<MOTHERDUCK_DATASET>.crashes`  | `85ca-t3if.json` |
+| `<MOTHERDUCK_DATASET>.vehicles` | `68nd-jvt3.json` |
+| `<MOTHERDUCK_DATASET>.people`   | `u6pd-qa9d.json` |
+
+Records are deduplicated on load using primary keys (`crash_record_id`, `crash_unit_id`, `person_id`).
 
 ### Step 2 — MotherDuck → GCS
 
@@ -142,10 +145,10 @@ uv run motherduck_to_gcs/pipeline.py 2026-03-05
 
 ### GCS output layout
 
-Files are written using Hive-style date partitioning:
+Files are written using Hive-style date partitioning under the prefix set by `MOTHERDUCK_DATASET`:
 
 ```
-gs://<BUCKET_NAME>/main/
+gs://<BUCKET_NAME>/<MOTHERDUCK_DATASET>/
 ├── crashes/
 │   └── date=2026-03-05/
 │       └── <load_id>.parquet
@@ -156,6 +159,8 @@ gs://<BUCKET_NAME>/main/
     └── date=2026-03-05/
         └── <load_id>.parquet
 ```
+
+Re-running the pipeline for the same date overwrites the existing partition (idempotent). dlt internal files are automatically removed after each run.
 
 ## Data sources
 
