@@ -130,7 +130,10 @@ def run(target_date: date | None = None) -> None:
     # Remove all dlt internal tracking folders — keep only data Parquet files
     for path in fs.glob(f"{bucket_name}/main/_dlt_*"):
         fs.rm(path, recursive=True)
-
+    #delete a init file that dlt creates in the root of main
+    init_file = f"{bucket_name}/main/init"
+    if fs.exists(init_file):
+        fs.rm(init_file)
 
 if __name__ == "__main__":
     # Optionally accept a date argument: python pipeline.py 2026-03-05

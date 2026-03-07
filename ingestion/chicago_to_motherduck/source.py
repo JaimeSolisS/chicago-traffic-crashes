@@ -32,8 +32,6 @@ def chicago_traffic_crashes_source(target_date: date | None = None) -> dlt.sourc
     """
     if target_date is None:
         target_date = datetime.now(CHICAGO_TZ).date() - timedelta(days=1)
-    else:
-        target_date = target_date - timedelta(days=1)
 
     # SODA stores crash_date in UTC. Convert Chicago midnight → UTC so the filter
     # correctly brackets the full Chicago calendar day regardless of DST.
