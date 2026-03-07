@@ -1,0 +1,11 @@
+[project]
+name = "ingestion"
+version = "0.1.0"
+description = "Chicago Traffic Crashes ingestion: API → MotherDuck → GCS"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "dlt[gs,motherduck]>=1.23.0",
+    "python-dotenv>=1.0.0",
+    "requests>=2.32.5",
+]

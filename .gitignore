@@ -4,3 +4,8 @@
 *.tfstate.backup
 gcp_credentials.json
 .env
+.dlt
+.venv
+.python-version
+__pycache__/
+uv.lock
