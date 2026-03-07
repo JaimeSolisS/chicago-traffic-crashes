@@ -7,16 +7,6 @@ Terraform configuration to provision GCP resources for the Chicago Traffic Crash
 - **GCS Bucket** — stores raw data files
 - **BigQuery Dataset** — `chicago_traffic_crashes` for analysis
 
-## Prerequisites
-
-- [Terraform](https://developer.hashicorp.com/terraform/install) >= 1.0
-- A [GCP project](https://console.cloud.google.com/) with billing enabled
-- A GCP service account with the following roles:
-    - `roles/storage.admin`
-    - `roles/bigquery.dataOwner`
-- The service account key downloaded as JSON and placed at `keys/gcp_credentials.json` (relative to the project root)
-- `keys/gcp_credentials.json` is gitignored, but you can find an example inside the directory.
-
 ## Structure
 
 ```
@@ -58,21 +48,4 @@ terraform apply -var="project_id=..." -var="bucket_name=..." ...
 terraform destroy -var="project_id=..." -var="bucket_name=..." ...
 ```
 
-## Configuration
-
-All variables are loaded from a `.env` file at the project root. Copy the example and fill in your values:
-
-```bash
-cp .env.example .env
-```
-
-| Variable      | Description                      |
-| ------------- | -------------------------------- |
-| `CREDENTIALS` | Path to service account JSON key |
-| `PROJECT_ID`  | GCP project ID                   |
-| `REGION`      | GCP region                       |
-| `LOCATION`    | GCP location (for BigQuery)      |
-| `BUCKET_NAME` | GCS bucket name                  |
-| `DATASET_ID`  | BigQuery dataset ID              |
-
-> `.env` is gitignored. See `.env.example` for the expected format.
+> For prerequisites and environment variable setup, see [SETUP.md](../SETUP.md).

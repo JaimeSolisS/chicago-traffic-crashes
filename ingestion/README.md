@@ -38,71 +38,7 @@ ingestion/
     └── pipeline.py      # MotherDuck → GCS Parquet
 ```
 
-## Prerequisites
-
-| Tool   | Version | Install                                            |
-| ------ | ------- | -------------------------------------------------- |
-| Python | ≥ 3.13  | [python.org](https://www.python.org/downloads/)    |
-| uv     | latest  | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
-
-You also need:
-
-- **MotherDuck:**
-  — sign up at [motherduck.com](https://motherduck.com) and generate a Personal Access Token (Settings → Access Tokens).
-    - On attached databases, click + and Add a new database
-
-- **GCP project** with:
-    - A GCS bucket to store Parquet files
-    - A service account with the **Storage Object Admin** role on that bucket
-    - A JSON key file for that service account
-
-## Setup
-
-### 1. Clone the repository
-
-```bash
-git clone <repo-url>
-cd chicago-traffic-crashes
-```
-
-### 2. Add your GCP service account key
-
-Place the downloaded JSON key file at:
-
-```
-keys/gcp_credentials.json
-```
-
-This path is already in `.gitignore` — it will never be committed.
-
-### 3. Configure environment variables
-
-Copy the example file and fill in your values:
-
-```bash
-cp .env.example .env
-```
-
-Open `.env` and set:
-
-```env
-CREDENTIALS=../keys/gcp_credentials.json   # path to service account JSON (relative to ingestion/)
-PROJECT_ID=your-gcp-project-id
-REGION=us-central1
-LOCATION=US
-BUCKET_NAME=your-gcs-bucket-name
-DATASET_ID=chicago_traffic_crashes
-MOTHERDUCK_TOKEN=your-motherduck-pat-token
-MOTHERDUCK_DATABASE=chicago_crashes         # MotherDuck database name
-MOTHERDUCK_DATASET=main                     # schema inside the database (also used as GCS prefix)
-```
-
-### 4. Install dependencies
-
-```bash
-cd ingestion
-uv sync
-```
+> For prerequisites and full setup, see [SETUP.md](../SETUP.md).
 
 ## Running the pipelines
 

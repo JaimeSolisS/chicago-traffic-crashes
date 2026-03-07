@@ -2,6 +2,7 @@ include .env
 export
 
 TF_DIR = infrastructure
+DLT_DIR = ingestion
 
 TF_VARS = \
 	-var="credentials=$(CREDENTIALS)" \
@@ -23,3 +24,7 @@ terraform-apply:
 terraform-destroy:
 	cd $(TF_DIR) && \
 	terraform destroy
+
+dlt-sync: 
+	cd ${DLT_DIR} && \
+	uv sync
