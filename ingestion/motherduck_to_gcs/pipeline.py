@@ -19,11 +19,11 @@ from dlt.common.configuration.specs import GcpServiceAccountCredentials
 from dlt.destinations import filesystem
 
 TABLES = ["crashes", "vehicles", "people"]
-MOTHERDUCK_SCHEMA = "main"
+MOTHERDUCK_DATASET = os.environ["MOTHERDUCK_DATASET"]
 database = os.environ["MOTHERDUCK_DATABASE"]
 
 
-@dlt.source(name="main")
+@dlt.source(name=MOTHERDUCK_DATASET)
 def motherduck_source(target_date: date, motherduck_token: str):
     """
     dlt source that reads crash data from MotherDuck for a specific date.
@@ -47,7 +47,7 @@ def motherduck_source(target_date: date, motherduck_token: str):
                 arrow_table = conn.execute(
                     f"""
                     SELECT *
-                    FROM {MOTHERDUCK_SCHEMA}.{table_name}
+                    FROM {MOTHERDUCK_DATASET}.{table_name}
                     WHERE crash_date::DATE = ?
                     """,
                     [target_date.isoformat()],
@@ -100,7 +100,7 @@ def run(target_date: date | None = None) -> None:
     # Delete existing date partitions so re-runs are idempotent (no duplicate files)
     fs = gcsfs.GCSFileSystem(token=json.loads(sa_info))
     for table in TABLES:
-        partition = f"{bucket_name}/main/{table}/date={date_str}"
+        partition = f"{bucket_name}/{MOTHERDUCK_DATASET}/{table}/date={date_str}"
         if fs.exists(partition):
             fs.rm(partition, recursive=True)
 
@@ -115,7 +115,7 @@ def run(target_date: date | None = None) -> None:
             layout="{table_name}/date={date_partition}/{load_id}.{ext}",
             extra_placeholders={"date_partition": date_str},
         ),
-        dataset_name="main",
+        dataset_name=MOTHERDUCK_DATASET,
     )
 
     source = motherduck_source(
@@ -128,10 +128,10 @@ def run(target_date: date | None = None) -> None:
 
     # Remove dlt internal tracking folders — keep only data Parquet files
     # Remove all dlt internal tracking folders — keep only data Parquet files
-    for path in fs.glob(f"{bucket_name}/main/_dlt_*"):
+    for path in fs.glob(f"{bucket_name}/{MOTHERDUCK_DATASET}/_dlt_*"):
         fs.rm(path, recursive=True)
-    #delete a init file that dlt creates in the root of main
-    init_file = f"{bucket_name}/main/init"
+    #delete a init file that dlt creates in the root of MOTHERDUCK_DATASET
+    init_file = f"{bucket_name}/{MOTHERDUCK_DATASET}/init"
     if fs.exists(init_file):
         fs.rm(init_file)
 

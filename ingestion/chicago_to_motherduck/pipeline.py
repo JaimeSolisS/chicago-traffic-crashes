@@ -27,9 +27,12 @@ def run(target_date: date | None = None) -> None:
     """
     if target_date is None:
         target_date = date.today() - timedelta(days=1)
+    else:
+        target_date = target_date - timedelta(days=1)
 
     token = os.environ["MOTHERDUCK_TOKEN"]
     database = os.environ["MOTHERDUCK_DATABASE"]
+    dataset = os.environ["MOTHERDUCK_DATASET"]
     # Pop CREDENTIALS so dlt doesn't intercept it as a GCP OAuth credential config
     os.environ.pop("CREDENTIALS", None)
     # Expose as dlt env var so the motherduck destination picks it up
@@ -42,7 +45,7 @@ def run(target_date: date | None = None) -> None:
     pipeline = dlt.pipeline(
         pipeline_name="chicago_traffic_crashes",
         destination="motherduck",
-        dataset_name="main",
+        dataset_name=dataset,
     )
 
     source = chicago_traffic_crashes_source(target_date=target_date)
