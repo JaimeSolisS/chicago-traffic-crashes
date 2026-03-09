@@ -38,7 +38,7 @@ def motherduck_source(target_date: date, motherduck_token: str):
     """
 
     def make_resource(table_name: str):
-        @dlt.resource(name=table_name, write_disposition="replace")
+        @dlt.resource(name=table_name, write_disposition="append")
         def _resource():
             conn = duckdb.connect(
                 f"md:{database}?motherduck_token={motherduck_token}"
@@ -81,6 +81,8 @@ def run(target_date: date | None = None) -> None:
     """
     if target_date is None:
         target_date = datetime.now(CHICAGO_TZ).date() - timedelta(days=1)
+    else:
+        target_date = target_date - timedelta(days=1)
 
     date_str = target_date.isoformat()
 
