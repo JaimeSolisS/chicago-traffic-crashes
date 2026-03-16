@@ -150,3 +150,75 @@ gs://<BUCKET_NAME>/<MOTHERDUCK_DATASET>/
 ```
 
 Re-running for the same date overwrites the existing partition (idempotent).
+
+## Step 7 - Create External Tables in BigQuery
+
+In BigQuery run, if you use other dataset names update as required
+
+```sql
+CREATE OR REPLACE EXTERNAL TABLE `chicago_traffic_crashes.external_crashes`
+WITH PARTITION COLUMNS
+OPTIONS (
+  format = 'PARQUET',
+  uris = ['gs://de-zoomcamp-484622-chicago-traffic-crashes/raw/crashes/*'],
+  hive_partition_uri_prefix = 'gs://de-zoomcamp-484622-chicago-traffic-crashes/raw/crashes/'
+);
+
+CREATE OR REPLACE EXTERNAL TABLE `chicago_traffic_crashes.external_people`
+WITH PARTITION COLUMNS
+OPTIONS (
+  format = 'PARQUET',
+  uris = ['gs://de-zoomcamp-484622-chicago-traffic-crashes/raw/people/*'],
+  hive_partition_uri_prefix = 'gs://de-zoomcamp-484622-chicago-traffic-crashes/raw/people/'
+);
+
+
+CREATE OR REPLACE EXTERNAL TABLE `chicago_traffic_crashes.external_vehicles`
+WITH PARTITION COLUMNS
+OPTIONS (
+  format = 'PARQUET',
+  uris = ['gs://de-zoomcamp-484622-chicago-traffic-crashes/raw/vehicles/*'],
+  hive_partition_uri_prefix = 'gs://de-zoomcamp-484622-chicago-traffic-crashes/raw/vehicles/'
+);
+
+```
+
+## Step 8 — Set up dbt (transform)
+
+### Install dbt
+
+```bash
+pip install dbt-bigquery
+```
+
+### Configure the dbt profile
+
+Add the following to `~/.dbt/profiles.yml`, substituting values from your `.env`:
+
+```yaml
+chicago_traffic_crashes:
+    target: dev
+    outputs:
+        dev:
+            type: bigquery
+            method: service-account
+            project: YOUR_PROJECT_ID # PROJECT_ID from .env
+            dataset: YOUR_DATASET_ID # DATASET_ID from .env
+            location: us-central1 # REGION from .env
+            keyfile: /path/to/gcp_credentials.json # CREDENTIALS from .env
+            threads: 1
+```
+
+### Verify the connection
+
+```bash
+make dbt-debug
+```
+
+All checks should pass. If BigQuery connection fails, double-check the keyfile path and that the service account has the required IAM roles.
+
+### Run models
+
+```bash
+make dbt-run
+```

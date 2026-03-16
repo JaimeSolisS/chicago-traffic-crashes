@@ -3,6 +3,7 @@ export
 
 TF_DIR = infrastructure
 DLT_DIR = ingestion
+DBT_DIR = transform
 
 TF_VARS = \
 	-var="credentials=$(CREDENTIALS)" \
@@ -28,3 +29,11 @@ terraform-destroy:
 dlt-sync: 
 	cd ${DLT_DIR} && \
 	uv sync
+
+dbt-debug:
+	cd ${DBT_DIR} && \
+	dbt debug
+
+dbt-run:
+	cd ${DBT_DIR} && \
+	dbt run
