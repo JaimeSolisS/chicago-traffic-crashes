@@ -31,5 +31,5 @@ SELECT
     END AS travel_direction,
     COALESCE(maneuver, 'UNKNOWN/NA') as maneuver,
     -- CRASH INVOLVEMENT --
-    COALESCE(first_contact_point, 'UNKNOWN') as first_contact_point,
+    COALESCE(first_contact_point, 'UNKNOWN') as first_contact_point
 FROM {{ref('raw_vehicle')}}

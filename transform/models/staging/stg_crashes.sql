@@ -29,6 +29,7 @@ SELECT
         WHEN crash_month = 12 THEN 'DECEMBER'
         ELSE 'UNKNOWN'
     END AS crash_month,
+    EXTRACT(YEAR FROM crash_date) as crash_year,
     -- LOCATION --
     street_number as street_number,
     CASE 
@@ -46,6 +47,7 @@ SELECT
     beat_of_occurrence as beat_of_occurrence,
     latitude as latitude,
     longitude as longitude,
+    ST_GEOGPOINT(longitude, latitude) as geo_point,
     -- ROAD CONDITIONS --
     posted_speed_limit as posted_speed_limit,
     trafficway_type as trafficway_type,
@@ -61,8 +63,12 @@ SELECT
     COALESCE(report_type, 'UNKNOWN') as report_type,
     crash_type as crash_type,
     first_crash_type as first_crash_type,
-    hit_and_run_i as hit_and_run_i,
-    damage as damage,
+    CASE
+        WHEN hit_and_run_i = 'Y' THEN 'YES'
+        WHEN hit_and_run_i = 'N' THEN 'NO'
+        ELSE 'UNKNOWN'
+     END as hit_and_run_i,
+    COALESCE(damage, 'UNKNOWN') as damage,
     prim_contributory_cause as prim_contributory_cause,
     sec_contributory_cause as sec_contributory_cause,
     num_units as num_units,
