@@ -37,3 +37,7 @@ dbt-debug:
 dbt-run:
 	cd ${DBT_DIR} && \
 	dbt run
+
+dbt-seed:
+	cd ${DBT_DIR} && \
+	dbt seed
