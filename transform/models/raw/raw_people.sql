@@ -1,7 +1,7 @@
 {{
   config(
     materialized='incremental',
-    unique_key='crash_record_id',
+    unique_key='person_id',
     incremental_strategy='merge'
   )
 }}
