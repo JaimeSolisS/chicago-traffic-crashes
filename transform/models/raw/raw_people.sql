@@ -1,3 +1,11 @@
+{{
+  config(
+    materialized='incremental',
+    unique_key='crash_record_id',
+    incremental_strategy='merge'
+  )
+}}
+
 WITH source AS (
     SELECT
         --Left out columns that are mostly NULL
@@ -35,6 +43,10 @@ WITH source AS (
         --pedpedal_location as pedpedal_location
 
     FROM {{ source('raw_data', 'external_people') }}
+    
+    {% if is_incremental() %}
+    WHERE crash_date > (SELECT MAX(crash_date) FROM {{ this }})
+    {% endif %}
 )
 
 SELECT * FROM source

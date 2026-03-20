@@ -1,5 +1,11 @@
+{{
+  config(
+    materialized='incremental',
+    unique_key='crash_record_id',
+    incremental_strategy='merge'
+  )
+}}
 WITH final AS (
-
     SELECT
         c.crash_record_id,
         -- TIME
@@ -53,6 +59,9 @@ WITH final AS (
     FROM {{ ref('int_crashes') }} c
     LEFT JOIN {{ ref('int_people_agg') }} p on c.crash_record_id = p.crash_record_id
     LEFT JOIN {{ ref('int_vehicle_agg') }} v on c.crash_record_id = v.crash_record_id
+    {% if is_incremental() %}
+    WHERE c.crash_date > (SELECT MAX(crash_date) FROM {{ this }})
+    {% endif %}
 )
 
 SELECT * FROM final

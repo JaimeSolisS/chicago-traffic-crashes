@@ -1,3 +1,11 @@
+{{
+  config(
+    materialized='incremental',
+    unique_key='crash_record_id',
+    incremental_strategy='merge'
+  )
+}}
+
 WITH source AS (
     SELECT
         --Left out columns that are mostly NULL
@@ -57,6 +65,10 @@ WITH source AS (
         --statements_taken_i as statements_taken_i,
 
     FROM {{ source('raw_data', 'external_crashes') }}
+
+    {% if is_incremental() %}
+    WHERE crash_date > (SELECT MAX(crash_date) FROM {{ this }})
+    {% endif %}
 )
 
 SELECT * FROM SOURCE

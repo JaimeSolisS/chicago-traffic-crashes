@@ -17,4 +17,10 @@ clean-targets:
 models:
     chicago_traffic_crashes:
         raw:
-            +materialized: table
+            +materialized: incremental
+        staging:
+            +materialized: view
+        intermediate:
+            +materialized: view
+        marts:
+            +materialized: incremental
