@@ -24,3 +24,5 @@ cd chicago-traffic-crashes
 **2. Provision infrastructure**
 
 See [infrastructure/README.md](infrastructure/README.md) for full setup instructions.
+
+See [SETUP.md](SETUP.md) (Step 8) for dbt installation, profile configuration, and connection verification.
