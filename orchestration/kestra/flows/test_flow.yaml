@@ -44,5 +44,5 @@ triggers:
       type: io.kestra.plugin.core.trigger.Schedule
       cron: "0 10 * * *"
       inputs:
-          name: Sarah
+          name: Jimbo
       disabled: true
