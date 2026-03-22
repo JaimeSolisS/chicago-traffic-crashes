@@ -1,0 +1,36 @@
+id: chicago_traffic_crashes_flow
+namespace: chicago_traffic_crashes
+
+tasks:
+    - id: hello
+      type: io.kestra.plugin.scripts.shell.Commands
+      taskRunner:
+          type: io.kestra.plugin.core.runner.Process
+      commands:
+          - cat /files/test.txt
+
+    - id: build_image
+      type: io.kestra.plugin.docker.Build
+      dockerfile: |
+          FROM python:3.13-slim
+          RUN pip install uv
+          RUN uv pip install --system "dlt[gs,motherduck]" requests python-dotenv
+      tags:
+          - kestra/python-dlt:latest
+
+    - id: run_chicago_to_motherduck_pipeline
+      type: io.kestra.plugin.scripts.python.Commands
+      containerImage: "{{ outputs.build_image.imageId }}"
+      packageManager: UV
+      namespaceFiles:
+          enabled: true
+      env:
+          MOTHERDUCK_TOKEN: "{{ kv('MOTHERDUCK_TOKEN') }}"
+          MOTHERDUCK_DATABASE: "{{ kv('MOTHERDUCK_DATABASE') }}"
+          MOTHERDUCK_DATASET: "{{ kv('MOTHERDUCK_DATASET') }}"
+
+      commands:
+          # Assuming 'chicago_to_motherduck.py' is a namespace file
+          # and `namespaceFiles` is enabled, the file will be in the working directory.
+          # The path should be relative to the working directory.
+          - python chicago_to_motherduck/pipeline.py

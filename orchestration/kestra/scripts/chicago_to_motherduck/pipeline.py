@@ -2,15 +2,9 @@ import os
 import sys
 from datetime import date, timedelta
 from pathlib import Path
-
-from dotenv import load_dotenv
-
-# Load credentials from project root .env before importing dlt
-load_dotenv(Path(__file__).parent.parent.parent / ".env")
-
 import dlt
 
-sys.path.insert(0, str(Path(__file__).parent))
+
 from source import chicago_traffic_crashes_source
 
 
@@ -29,12 +23,9 @@ def run(target_date: date | None = None) -> None:
         target_date = date.today() - timedelta(days=1)
     else:
         target_date = target_date - timedelta(days=1)
-
     token = os.environ["MOTHERDUCK_TOKEN"]
     database = os.environ["MOTHERDUCK_DATABASE"]
     dataset = os.environ["MOTHERDUCK_DATASET"]
-    # Pop CREDENTIALS so dlt doesn't intercept it as a GCP OAuth credential config
-    os.environ.pop("CREDENTIALS", None)
     # Expose as dlt env var so the motherduck destination picks it up
     os.environ["DESTINATION__MOTHERDUCK__CREDENTIALS"] = (
         f"md:{database}?motherduck_token={token}"
