@@ -222,3 +222,69 @@ All checks should pass. If BigQuery connection fails, double-check the keyfile p
 ```bash
 make dbt-run
 ```
+
+## Step 9 — Set up Kestra
+
+> **Running locally without Kestra:** The pipeline can also be run directly from the command line. Edit the date range in `orchestration/local/pipeline.py`, then:
+>
+> ```bash
+> make local-pipeline
+> ```
+
+From the project root, start Kestra and its backing Postgres database:
+
+```bash
+make kestra-up
+```
+
+Kestra will be available at [localhost:8080](http://localhost:8080).
+
+### Sync flows and scripts from GitHub
+
+Inside Kestra, create and execute the following flow once to pull the pipeline flow and scripts from your repository. After the initial run it can be triggered manually whenever you push changes.
+
+Go to **Flows → + Create** and paste:
+
+```yaml
+id: sync_flows_from_git
+namespace: system
+
+tasks:
+    - id: sync_flows
+      type: io.kestra.plugin.git.SyncFlows
+      url: https://github.com/{YOUR_GITHUB_USERNAME}/{YOUR_GITHUB_REPO}
+      branch: main
+      targetNamespace: chicago_traffic_crashes
+      gitDirectory: orchestration/kestra/flows
+      dryRun: false
+
+    - id: sync_files
+      type: io.kestra.plugin.git.SyncNamespaceFiles
+      url: https://github.com/{YOUR_GITHUB_USERNAME}/{YOUR_GITHUB_REPO}
+      branch: main
+      namespace: chicago_traffic_crashes
+      gitDirectory: orchestration/kestra/scripts
+      dryRun: false
+```
+
+For more information see [kestra.io/docs/how-to-guides/syncflows](https://kestra.io/docs/how-to-guides/syncflows).
+
+### Configure the KV Store
+
+Go to **Namespaces → chicago_traffic_crashes → KV Store** and add the following key-value pairs:
+
+| Key                    | Type   | Description                             |
+| ---------------------- | ------ | --------------------------------------- |
+| `BUCKET_NAME`          | STRING | GCS bucket name                         |
+| `GCP_BIGQUERY_DATASET` | STRING | BigQuery dataset ID                     |
+| `GCP_CREDENTIALS_JSON` | JSON   | Contents of `keys/gcp_credentials.json` |
+| `GCP_PROJECT_ID`       | STRING | GCP project ID                          |
+| `GITHUB_REPO`          | STRING | GitHub repository name                  |
+| `GITHUB_USERNAME`      | STRING | GitHub username                         |
+| `MOTHERDUCK_DATABASE`  | STRING | MotherDuck database name                |
+| `MOTHERDUCK_DATASET`   | STRING | MotherDuck schema (e.g. `raw`)          |
+| `MOTHERDUCK_TOKEN`     | STRING | MotherDuck Personal Access Token        |
+
+### Run the pipeline
+
+Go to **Flows → chicago_traffic_crashes → chicago_traffic_crashes_flow** and use **Backfill executions** to load historical dates.
