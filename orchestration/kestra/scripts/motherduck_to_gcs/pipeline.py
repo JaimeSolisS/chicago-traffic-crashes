@@ -4,13 +4,9 @@ import sys
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
+import json
 
 CHICAGO_TZ = ZoneInfo("America/Chicago")
-
-from dotenv import load_dotenv
-
-# Load credentials from project root .env before importing dlt
-load_dotenv(Path(__file__).parent.parent.parent / ".env")
 
 import dlt
 import duckdb
@@ -88,14 +84,8 @@ def run(target_date: date | None = None) -> None:
 
     motherduck_token = os.environ["MOTHERDUCK_TOKEN"]
     bucket_name = os.environ["BUCKET_NAME"]
-    # Pop CREDENTIALS so dlt doesn't intercept it as a GCP OAuth credential config.
-    # The value is relative to ingestion/ (e.g. "../keys/gcp_credentials.json").
-    credentials_path = os.environ.pop("CREDENTIALS", "")
-
-    # Load the service account JSON and hand it directly to dlt's credential spec
-    abs_credentials_path = (Path(__file__).parent.parent / credentials_path).resolve()
-    with open(abs_credentials_path) as f:
-        sa_info = f.read()
+    
+    sa_info = os.environ["GCP_CREDENTIALS_JSON"]  # the full JSON string
     gcp_credentials = GcpServiceAccountCredentials()
     gcp_credentials.parse_native_representation(sa_info)
 

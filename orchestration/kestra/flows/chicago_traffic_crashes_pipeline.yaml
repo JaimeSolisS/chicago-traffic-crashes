@@ -28,9 +28,24 @@ tasks:
           MOTHERDUCK_TOKEN: "{{ kv('MOTHERDUCK_TOKEN') }}"
           MOTHERDUCK_DATABASE: "{{ kv('MOTHERDUCK_DATABASE') }}"
           MOTHERDUCK_DATASET: "{{ kv('MOTHERDUCK_DATASET') }}"
-
       commands:
           - python chicago_to_motherduck/pipeline.py {{ trigger.date | date('YYYY-MM-dd') }}
+
+    - id: motherduck_to_gcp_pipeline
+      type: io.kestra.plugin.scripts.python.Commands
+      containerImage: "{{ outputs.build_image.imageId }}"
+      packageManager: UV
+      namespaceFiles:
+          enabled: true
+      env:
+          MOTHERDUCK_TOKEN: "{{ kv('MOTHERDUCK_TOKEN') }}"
+          MOTHERDUCK_DATABASE: "{{ kv('MOTHERDUCK_DATABASE') }}"
+          MOTHERDUCK_DATASET: "{{ kv('MOTHERDUCK_DATASET') }}"
+          BUCKET_NAME: "{{ kv('BUCKET_NAME') }}"
+          GCP_CREDENTIALS_JSON: "{{ kv('GCP_CREDENTIALS_JSON') }}"
+
+      commands:
+          - python motherduck_to_gcs/pipeline.py {{ trigger.date | date('YYYY-MM-dd') }}
 
 triggers:
     - id: daily_noon_schedule
