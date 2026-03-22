@@ -2,13 +2,6 @@ id: chicago_traffic_crashes_flow
 namespace: chicago_traffic_crashes
 
 tasks:
-    - id: hello
-      type: io.kestra.plugin.scripts.shell.Commands
-      taskRunner:
-          type: io.kestra.plugin.core.runner.Process
-      commands:
-          - cat /files/test.txt
-
     - id: build_image
       type: io.kestra.plugin.docker.Build
       dockerfile: |
@@ -52,7 +45,7 @@ tasks:
       tasks:
           - id: clone_dbt_repo
             type: io.kestra.plugin.git.Clone
-            url: https://github.com/JaimeSolisS/chicago-traffic-crashes
+            url: "https://github.com/{{ kv('GITHUB_USERNAME') }}/{{ kv('GITHUB_REPO') }}"
             branch: main
 
           - id: run_dbt_build
