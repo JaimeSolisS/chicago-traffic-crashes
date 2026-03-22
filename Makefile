@@ -4,6 +4,8 @@ export
 TF_DIR = infrastructure
 DLT_DIR = ingestion
 DBT_DIR = transform
+LOCAL_PIPE_DIR = orchestration/local
+KESTRA_DIR = orchestration/kestra
 
 TF_VARS = \
 	-var="credentials=$(CREDENTIALS)" \
@@ -41,3 +43,15 @@ dbt-run:
 dbt-seed:
 	cd ${DBT_DIR} && \
 	dbt seed
+
+local-pipeline:
+	cd ${LOCAL_PIPE_DIR} && \
+	python pipeline.py
+
+kestra-up:
+	cd ${KESTRA_DIR} && \
+	docker-compose up -d
+
+kestra-down:
+	cd $(KESTRA_DIR) && 
+	docker-compose down
