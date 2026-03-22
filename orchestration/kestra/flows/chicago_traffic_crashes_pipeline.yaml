@@ -14,7 +14,7 @@ tasks:
       dockerfile: |
           FROM python:3.13-slim
           RUN pip install uv
-          RUN uv pip install --system "dlt[gs,motherduck]" requests python-dotenv
+          RUN uv pip install --system "dlt[gs,motherduck]>=1.23.0" requests python-dotenv duckdb==1.4.4
       tags:
           - kestra/python-dlt:latest
 
@@ -30,7 +30,9 @@ tasks:
           MOTHERDUCK_DATASET: "{{ kv('MOTHERDUCK_DATASET') }}"
 
       commands:
-          # Assuming 'chicago_to_motherduck.py' is a namespace file
-          # and `namespaceFiles` is enabled, the file will be in the working directory.
-          # The path should be relative to the working directory.
-          - python chicago_to_motherduck/pipeline.py
+          - python chicago_to_motherduck/pipeline.py {{ trigger.date | date('YYYY-MM-dd') }}
+
+triggers:
+    - id: daily_noon_schedule
+      type: io.kestra.plugin.core.trigger.Schedule
+      cron: "0 12 * * *"

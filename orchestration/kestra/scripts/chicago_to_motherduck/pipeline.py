@@ -102,7 +102,7 @@ def run(target_date: date | None = None) -> None:
         f"md:{database}?motherduck_token={token}"
     )
 
-    print(f"Loading data for {target_date.isoformat()} into MotherDuck ...")
+    print(f"Loading data for {target_date.isoformat()} into MotherDuck database {database} {dataset} dataset...")
 
     pipeline = dlt.pipeline(
         pipeline_name="chicago_traffic_crashes",
