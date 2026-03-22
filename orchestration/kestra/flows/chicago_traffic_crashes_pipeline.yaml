@@ -11,7 +11,7 @@ tasks:
       tags:
           - kestra/python-dlt:latest
 
-    - id: run_chicago_to_motherduck_pipeline
+    - id: api_to_motherduck
       type: io.kestra.plugin.scripts.python.Commands
       containerImage: "{{ outputs.build_image.imageId }}"
       packageManager: UV
@@ -24,7 +24,7 @@ tasks:
       commands:
           - python chicago_to_motherduck/pipeline.py {{ trigger.date | date('YYYY-MM-dd') }}
 
-    - id: motherduck_to_gcp_pipeline
+    - id: motherduck_to_gcs
       type: io.kestra.plugin.scripts.python.Commands
       containerImage: "{{ outputs.build_image.imageId }}"
       packageManager: UV
@@ -48,7 +48,7 @@ tasks:
             url: "https://github.com/{{ kv('GITHUB_USERNAME') }}/{{ kv('GITHUB_REPO') }}"
             branch: main
 
-          - id: run_dbt_build
+          - id: run_dbt
             type: io.kestra.plugin.dbt.cli.DbtCLI
             containerImage: ghcr.io/kestra-io/dbt-bigquery:latest
             projectDir: transform
