@@ -73,7 +73,7 @@ WITH source AS (
     FROM {{ source('raw_data', 'external_crashes') }}
 
     {% if is_incremental() %}
-    WHERE partition_date > (SELECT MAX(partition_date) FROM {{ this }})
+    WHERE partition_date > (SELECT MAX(crash_date) FROM {{ this }})
     {% endif %}
 )
 
