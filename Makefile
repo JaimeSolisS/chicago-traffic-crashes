@@ -46,7 +46,7 @@ dbt-seed:
 
 local-pipeline:
 	cd ${LOCAL_PIPE_DIR} && \
-	python pipeline.py
+	uv run pipeline.py
 
 kestra-up:
 	cd ${KESTRA_DIR} && \
