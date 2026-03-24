@@ -4,7 +4,11 @@ End-to-end data engineering project analyzing traffic crash data from the City o
 
 ## Problem
 
-Chicago averages over 100,000 traffic crashes per year, yet not all crashes are equal — a small subset result in fatal or incapacitating injuries that carry devastating human and economic costs. This project builds an end-to-end data pipeline ingesting crash, vehicle, and people records from the Chicago Data Portal into a cloud analytics stack (MotherDuck → Google Cloud Storage → BigQuery → dbt), culminating in a data mart designed to answer one central question: when, where, and under what conditions are severe crashes most likely to occur? By integrating environmental factors (weather, lighting, road surface), driver behavior (impairment, known actions), and vehicle characteristics, the analysis surfaces the patterns that matter most — enabling city planners, traffic engineers, and public safety officials to move from reactive reporting to targeted, evidence-based intervention.
+Chicago reports over 100,000 traffic crashes each year, but only a portion of them result in the most serious outcomes—fatal or incapacitating injuries that have significant human and economic impact. This project focuses on identifying when and under what conditions these severe crashes are most likely to occur.
+
+The Chicago Traffic Crash dataset was selected because it provides separate but related data on crashes, people, and vehicles, allowing analysis across multiple perspectives (environment, driver, and vehicle). It is also continuously updated, making it suitable for building a pipeline that can handle daily refreshed data.
+
+To support this analysis, a batch data pipeline was built to ingest, store, and transform the data on a daily schedule. Raw records flow from the Chicago Data Portal into MotherDuck, then into Google Cloud Storage as Parquet files, and finally into BigQuery where dbt models clean and aggregate them into an analytics-ready mart visualized in a Looker Studio dashboard. The pipeline is orchestrated with Kestra and Google Cloud infrastructure is provisioned with Terraform. While the MotherDuck staging step is not strictly necessary, it was intentionally included to practice working with multiple tools across different stages of a pipeline.
 
 ## Infrastructure
 

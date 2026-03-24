@@ -22,10 +22,10 @@ motherduck_to_gcs/pipeline.py   (dlt filesystem destination)
   │
   ▼
 Google Cloud Storage
-  gs://<BUCKET_NAME>/<MOTHERDUCK_DATASET>/<table>/date=YYYY-MM-DD/<load_id>.parquet
+  gs://<BUCKET_NAME>/<MOTHERDUCK_DATASET>/<table>/partition_date=YYYY-MM-DD/<load_id>.parquet
 ```
 
-## Project structure
+## Folder structure
 
 ```
 ingestion/
@@ -59,8 +59,8 @@ uv run chicago_to_motherduck/pipeline.py 2026-03-05
 
 This creates (or merges into) three tables in MotherDuck under the schema set by `MOTHERDUCK_DATASET`:
 
-| Table                          | Source endpoint  |
-| ------------------------------ | ---------------- |
+| Table                           | Source endpoint  |
+| ------------------------------- | ---------------- |
 | `<MOTHERDUCK_DATASET>.crashes`  | `85ca-t3if.json` |
 | `<MOTHERDUCK_DATASET>.vehicles` | `68nd-jvt3.json` |
 | `<MOTHERDUCK_DATASET>.people`   | `u6pd-qa9d.json` |
@@ -86,13 +86,13 @@ Files are written using Hive-style date partitioning under the prefix set by `MO
 ```
 gs://<BUCKET_NAME>/<MOTHERDUCK_DATASET>/
 ├── crashes/
-│   └── date=2026-03-05/
+│   └── partition_date=2026-03-05/
 │       └── <load_id>.parquet
 ├── vehicles/
-│   └── date=2026-03-05/
+│   └── partition_date=2026-03-05/
 │       └── <load_id>.parquet
 └── people/
-    └── date=2026-03-05/
+    └── partition_date=2026-03-05/
         └── <load_id>.parquet
 ```
 

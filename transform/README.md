@@ -10,40 +10,46 @@ raw/ → staging/ → intermediate/ → marts/
 
 ### raw/
 
-Materialized as **incremental tables** (merge strategy on `crash_record_id`). These models pull from BigQuery external tables loaded by the ingestion pipeline and cast columns to their correct types. Only new rows (by `crash_date`) are processed on each run.
+Materialized as **incremental tables** (merge strategy on unique key). These models pull from the external source tables, cast columns to their correct types, and convert `crash_date` timestamps to date format. Only new rows are processed on each run, filtered by `partition_date`.
 
-| Model | Source table | Key |
-|---|---|---|
-| `raw_crashes` | `external_crashes` | `crash_record_id` |
-| `raw_vehicle` | `external_vehicles` | `crash_unit_id` |
-| `raw_people` | `external_people` | `person_id` |
+Partitioned by `crash_date` (DATE, day granularity).
+
+| Model         | Source table        | Unique key        |
+| ------------- | ------------------- | ----------------- |
+| `raw_crashes` | `external_crashes`  | `crash_record_id` |
+| `raw_vehicle` | `external_vehicles` | `crash_unit_id`   |
+| `raw_people`  | `external_people`   | `person_id`       |
+
+> The upstream external tables (`external_crashes`, `external_vehicles`, `external_people`) are partitioned by `partition_date` — a `DATE` column derived from the Hive partition path (`date=YYYY-MM-DD`) written by the ingestion pipeline.
 
 ### staging/
 
 Materialized as **views**. Apply business logic on top of raw models: label encoding (day names, month names, street directions), `COALESCE` for nulls, and derived columns like `crash_year` and `geo_point`.
 
-| Model | Description |
-|---|---|
+| Model         | Description                                                           |
+| ------------- | --------------------------------------------------------------------- |
 | `stg_crashes` | Cleans and enriches crash records; adds geo point and readable labels |
-| `stg_vehicle` | Cleans vehicle records; selects relevant columns |
-| `stg_people` | Cleans people records; selects relevant columns |
+| `stg_vehicle` | Cleans vehicle records; selects relevant columns                      |
+| `stg_people`  | Cleans people records; selects relevant columns                       |
 
 ### intermediate/
 
 Materialized as **views**. Prepare data for the mart layer — one model narrows crash columns to what's needed for severity analysis, the other two aggregate vehicle and people metrics per crash.
 
-| Model | Description |
-|---|---|
-| `int_crashes` | Selects the crash fields used downstream (time, environment, road, injuries) |
-| `int_people_agg` | Per-crash aggregations: people count, driver flags, impairment flag, BAC flag, severe injury count |
-| `int_vehicle_agg` | Per-crash aggregations: vehicle count, defect flag, known vehicle type, known maneuver |
+| Model             | Description                                                                                        |
+| ----------------- | -------------------------------------------------------------------------------------------------- |
+| `int_crashes`     | Selects the crash fields used downstream (time, environment, road, injuries)                       |
+| `int_people_agg`  | Per-crash aggregations: people count, driver flags, impairment flag, BAC flag, severe injury count |
+| `int_vehicle_agg` | Per-crash aggregations: vehicle count, defect flag, known vehicle type, known maneuver             |
 
 ### marts/
 
-Materialized as **incremental tables**. The final analytics layer joins all intermediate models into a single wide table ready for Looker Studio.
+Materialized as **incremental tables** (merge strategy on `crash_record_id`). The final analytics layer joins all intermediate models into a single wide table ready for Looker Studio.
 
-| Model | Description |
-|---|---|
+Partitioned by `crash_date` (DATE, day granularity).
+
+| Model                 | Description                                                                                                                                                                    |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `mart_crash_severity` | One row per crash with severity classification (`FATAL` / `SERIOUS` / `NON-SERIOUS`), speed bucket, all environment/road conditions, and aggregated people and vehicle metrics |
 
 ## Commands
