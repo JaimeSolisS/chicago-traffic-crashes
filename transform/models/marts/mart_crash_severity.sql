@@ -2,14 +2,20 @@
   config(
     materialized='incremental',
     unique_key='crash_record_id',
-    incremental_strategy='merge'
+    incremental_strategy='merge', 
+    partition_by={
+      "field": "crash_date",
+      "data_type": "date",
+      "granularity": "day"
+    }
   )
 }}
 WITH final AS (
     SELECT
         c.crash_record_id,
         -- TIME
-        c.crash_date,
+        c.crash_date as crash_date,
+        c.crash_timestamp as crash_timestamp,
         c.crash_hour,
         c.crash_day_of_week,
         c.crash_month,

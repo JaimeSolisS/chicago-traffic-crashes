@@ -5,6 +5,7 @@ SELECT
     COALESCE(unit_type, 'UNKNOWN') as unit_type,
     crash_record_id as crash_record_id,
     crash_date as crash_date,
+    crash_timestamp as crash_timestamp,
     vehicle_id as vehicle_id,
     -- VEHICLE INFO --
     COALESCE(make, 'UNKNOWN') as make,

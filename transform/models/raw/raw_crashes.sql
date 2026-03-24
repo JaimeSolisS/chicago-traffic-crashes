@@ -2,7 +2,12 @@
   config(
     materialized='incremental',
     unique_key='crash_record_id',
-    incremental_strategy='merge'
+    incremental_strategy='merge',
+    partition_by={
+      "field": "crash_date",
+      "data_type": "date",
+      "granularity": "day"
+    }
   )
 }}
 
@@ -12,7 +17,8 @@ WITH source AS (
         -- IDENTITY --
         crash_record_id as crash_record_id,
         -- TIME --
-        crash_date as crash_date,
+        crash_date as crash_timestamp,
+        DATE(crash_date) as crash_date,
         --crash_date_est_i as crash_date_est_i,
         CAST(crash_hour as integer) as crash_hour,
         CAST(crash_day_of_week as integer) as crash_day_of_week,
@@ -67,7 +73,7 @@ WITH source AS (
     FROM {{ source('raw_data', 'external_crashes') }}
 
     {% if is_incremental() %}
-    WHERE crash_date > (SELECT MAX(crash_date) FROM {{ this }})
+    WHERE partition_date > (SELECT MAX(partition_date) FROM {{ this }})
     {% endif %}
 )
 

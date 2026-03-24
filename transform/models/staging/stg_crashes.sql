@@ -3,6 +3,7 @@ SELECT
     crash_record_id as crash_record_id,
     -- TIME --
     crash_date as crash_date,
+    crash_timestamp as crash_timestamp,
     crash_hour as crash_hour,
     CASE 
         WHEN crash_day_of_week = 1 THEN 'SUNDAY'

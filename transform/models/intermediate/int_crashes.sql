@@ -2,7 +2,8 @@ SELECT
     -- IDENTITY --
     crash_record_id,
     -- TIME --
-    crash_date,
+    crash_date as crash_date,
+    crash_timestamp as crash_timestamp,
     crash_hour,
     crash_day_of_week,
     crash_month,

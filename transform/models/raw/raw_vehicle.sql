@@ -2,7 +2,12 @@
   config(
     materialized='incremental',
     unique_key='crash_unit_id',
-    incremental_strategy='merge'
+    incremental_strategy='merge', 
+    partition_by={
+      "field": "crash_date",
+      "data_type": "date",
+      "granularity": "day"
+    }
   )
 }}
 WITH source AS (
@@ -13,7 +18,8 @@ WITH source AS (
         CAST(unit_no as numeric) as unit_no,
         unit_type as unit_type,
         crash_record_id as crash_record_id,
-        crash_date as crash_date,
+        crash_date as crash_timestamp,
+        DATE(crash_date) as crash_date,
         CAST(vehicle_id as numeric) as vehicle_id,
         -- VEHICLE INFO --
         make as make,
@@ -78,7 +84,7 @@ WITH source AS (
     FROM {{ source('raw_data', 'external_vehicles') }}
 
     {% if is_incremental() %}
-    WHERE crash_date > (SELECT MAX(crash_date) FROM {{ this }})
+    WHERE partition_date > (SELECT MAX(partition_date) FROM {{ this }})
     {% endif %}
 )
 

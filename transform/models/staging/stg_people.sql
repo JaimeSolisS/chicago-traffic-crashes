@@ -5,6 +5,7 @@ SELECT
     crash_record_id as crash_record_id,
     vehicle_id as vehicle_id,
     crash_date as crash_date,
+    crash_timestamp as crash_timestamp,
     -- DEMOGRAPHICS --
     COALESCE(sex, 'UNKNOWN') as sex,
     age as age,

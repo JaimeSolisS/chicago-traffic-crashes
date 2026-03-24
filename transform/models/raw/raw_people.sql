@@ -2,7 +2,12 @@
   config(
     materialized='incremental',
     unique_key='person_id',
-    incremental_strategy='merge'
+    incremental_strategy='merge', 
+    partition_by={
+      "field": "crash_date",
+      "data_type": "date",
+      "granularity": "day"
+    }
   )
 }}
 
@@ -14,7 +19,8 @@ WITH source AS (
         person_type as person_type,
         crash_record_id as crash_record_id,
         vehicle_id as vehicle_id,
-        crash_date as crash_date,
+        crash_date as crash_timestamp,
+        DATE(crash_date) as crash_date,
         -- DEMOGRAPHICS --
         sex as sex,
         CAST(age as integer) as age,
@@ -45,7 +51,7 @@ WITH source AS (
     FROM {{ source('raw_data', 'external_people') }}
     
     {% if is_incremental() %}
-    WHERE crash_date > (SELECT MAX(crash_date) FROM {{ this }})
+    WHERE partition_date > (SELECT MAX(partition_date) FROM {{ this }})
     {% endif %}
 )
 
