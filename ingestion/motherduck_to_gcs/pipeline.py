@@ -102,7 +102,7 @@ def run(target_date: date | None = None) -> None:
     # Delete existing date partitions so re-runs are idempotent (no duplicate files)
     fs = gcsfs.GCSFileSystem(token=json.loads(sa_info))
     for table in TABLES:
-        partition = f"{bucket_name}/{MOTHERDUCK_DATASET}/{table}/date={date_str}"
+        partition = f"{bucket_name}/{MOTHERDUCK_DATASET}/{table}/partition_date={date_str}"
         if fs.exists(partition):
             fs.rm(partition, recursive=True)
 
@@ -114,7 +114,7 @@ def run(target_date: date | None = None) -> None:
             bucket_url=f"gs://{bucket_name}",
             credentials=gcp_credentials,
             # Hive-style partitioning: <table>/date=YYYY-MM-DD/<load_id>.parquet
-            layout="{table_name}/date={date_partition}/{load_id}.{ext}",
+            layout="{table_name}/partition_date={date_partition}/{load_id}.{ext}",
             extra_placeholders={"date_partition": date_str},
         ),
         dataset_name=MOTHERDUCK_DATASET,
