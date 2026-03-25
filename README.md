@@ -1,6 +1,6 @@
-# Chicago Traffic Crashes
+# 🚦 Chicago Traffic Crashes
 
-End-to-end data engineering project analyzing traffic crash data from the City of Chicago.
+> End-to-end data engineering pipeline for analyzing traffic crash severity across Chicago — from raw API data to an interactive Looker Studio dashboard.
 
 ## Table of Contents
 
@@ -19,7 +19,7 @@ This project, developed as the final submission for the **DE Zoomcamp 2026 cohor
 
 The MotherDuck staging step is not strictly necessary, but was intentionally included to practice working with multiple tools across different stages of a pipeline.
 
-## Problem Statement
+### Problem Statement
 
 Chicago reports over 100,000 traffic crashes each year, but only a portion result in fatal or incapacitating injuries that carry significant human and economic impact. Without an automated pipeline, it is difficult to continuously process the three related datasets (crashes, people, vehicles), deduplicate records, and surface actionable patterns in crash severity.
 
@@ -49,12 +49,12 @@ The pipeline follows a daily batch processing workflow:
     - **Chicago API → MotherDuck:** dlt hits the Chicago SODA 2.0 API with offset-based pagination (1,000 rows/page), filtering by date (Chicago timezone → UTC). Records are deduplicated via merge disposition on primary keys (`crash_record_id`, `crash_unit_id`, `person_id`) and loaded into MotherDuck across three tables: `crashes`, `vehicles`, and `people`.
     - **MotherDuck → GCS:** A second dlt pipeline queries MotherDuck via DuckDB, fetches Arrow tables partitioned by `crash_date`, and writes Hive-partitioned Parquet files to GCS (`gs://BUCKET/DATASET/crashes/date=YYYY-MM-DD/`). Existing partitions are deleted before writing, making the step idempotent.
 
-    See [Ingestion](ingestion/README.md) for more details.
+    See [Ingestion](ingestion/) for more details.
 
 2. **Loading (GCS → BigQuery):** Raw Parquet files are loaded from GCS into BigQuery staging tables with partitioning for query optimization.
 3. **Transformation (dbt):** dbt models clean, join, and aggregate the three datasets into a production mart in BigQuery, computing crash severity flags, time-of-day features, and location aggregations.
 
-    See [Transform](transform/README.md) for more details.
+    See [Transform](transform/) for more details.
 
 4. **Visualization (Looker Studio):** The mart is connected to a Looker Studio dashboard surfacing crash severity trends and contributing factors.
 5. **Orchestration (Kestra):** Kestra, running via Docker, schedules and orchestrates all pipeline stages daily.
@@ -67,7 +67,7 @@ The pipeline follows a daily batch processing workflow:
 
 ### Architecture Diagram
 
-![Chicago Traffic Crashes Data Pipeline Architecture](img/ArchitectureDiagram.png)
+![Chicago Traffic Crashes Data Pipeline Architecture](img/diagram.png)
 
 ## Dashboard
 
@@ -84,6 +84,10 @@ The dashboard combines data from crashes, people, and vehicles to provide a more
 - Contributing causes (what led to the crash)
 - Environmental conditions (weather and road surface)
 - Risk factors (driver condition vs vehicle issues)
+
+Access the live dashboard here: [Looker Studio](https://lookerstudio.google.com/s/sYOzSD61bzo)
+
+![Dashboard screenshot](img/dashboard.png)
 
 ## Setup and Installation
 
@@ -236,50 +240,7 @@ terraform apply -var="project_id=..." -var="bucket_name=..." ...
 
 This creates a GCS bucket for raw Parquet files and a BigQuery dataset for downstream analytics.
 
-## 5 — Install ingestion dependencies
-
-```bash
-make dlt-sync
-```
-
-## 6 (optional) — Add the dlt MCP Server config
-
-```bash
-claude mcp add dlt -- uv run --with "dlt[motherduck,gs]" --with "dlt-mcp[search]" python -m dlt_mcp
-```
-
-Skip this step if you do not need MCP integration.
-
-## 7 — Run the ingestion pipelines
-
-Both pipelines default to **yesterday's date** when run with no arguments.
-
-### Stage 1 — Chicago API → MotherDuck
-
-```bash
-cd ingestion
-uv run chicago_to_motherduck/pipeline.py
-uv run chicago_to_motherduck/pipeline.py 2026-03-05  # specific date
-```
-
-The selected day's data will be loaded into MotherDuck across three tables: `crashes`, `vehicles`, and `people`.
-
-### Stage 2 — MotherDuck → GCS
-
-```bash
-uv run motherduck_to_gcs/pipeline.py
-uv run motherduck_to_gcs/pipeline.py 2026-03-05  # specific date
-```
-
-Parquet files will appear in your GCS bucket under:
-
-```
-gs://<BUCKET_NAME>/raw/crashes/date=YYYY-MM-DD/
-gs://<BUCKET_NAME>/raw/people/date=YYYY-MM-DD/
-gs://<BUCKET_NAME>/raw/vehicles/date=YYYY-MM-DD/
-```
-
-## 8 — Create external tables in BigQuery
+## 5 — Create external tables in BigQuery
 
 Run the following in the BigQuery SQL Editor, replacing `YOUR_DATASET_ID` and `YOUR_BUCKET_NAME` with your values:
 
@@ -309,15 +270,63 @@ OPTIONS (
 );
 ```
 
-## 9 — Set up dbt
+> [!NOTE]
+> The external tables will be empty until data is loaded into GCS. If you want to replicate the project step by step and verify each stage, follow steps 6–9 below before continuing. Otherwise, skip directly to [Step 10 — Set up Kestra](#10--set-up-kestra) — the orchestrator will handle ingestion and populate the tables automatically.
 
-### Install dbt
+---
+
+## 6 (optional) — Install ingestion dependencies
+
+```bash
+make dlt-sync
+```
+
+## 7 (optional) — Add the dlt MCP Server config
+
+```bash
+claude mcp add dlt -- uv run --with "dlt[motherduck,gs]" --with "dlt-mcp[search]" python -m dlt_mcp
+```
+
+Skip this step if you do not need MCP integration.
+
+## 8 (optional) — Run the ingestion pipelines
+
+Both pipelines default to **yesterday's date** when run with no arguments.
+
+### (optional) Stage 1 — Chicago API → MotherDuck
+
+```bash
+cd ingestion
+uv run chicago_to_motherduck/pipeline.py
+uv run chicago_to_motherduck/pipeline.py 2026-03-05  # specific date
+```
+
+The selected day's data will be loaded into MotherDuck across three tables: `crashes`, `vehicles`, and `people`.
+
+### (optional) Stage 2 — MotherDuck → GCS
+
+```bash
+uv run motherduck_to_gcs/pipeline.py
+uv run motherduck_to_gcs/pipeline.py 2026-03-05  # specific date
+```
+
+Parquet files will appear in your GCS bucket under:
+
+```
+gs://<BUCKET_NAME>/raw/crashes/partition_date=YYYY-MM-DD/
+gs://<BUCKET_NAME>/raw/people/partition_date=YYYY-MM-DD/
+gs://<BUCKET_NAME>/raw/vehicles/partition_date=YYYY-MM-DD/
+```
+
+## 9 (optional) — Set up dbt
+
+### (optional) Install dbt
 
 ```bash
 pip install dbt-bigquery
 ```
 
-### Configure the dbt profile
+### (optional) Configure the dbt profile
 
 Add this to `~/.dbt/profiles.yml`, replacing placeholders with your values:
 
@@ -335,7 +344,7 @@ chicago_traffic_crashes:
             threads: 1
 ```
 
-### Verify the connection
+### (optional) Verify the connection
 
 ```bash
 make dbt-debug
@@ -343,7 +352,7 @@ make dbt-debug
 
 All checks should pass. If BigQuery connection fails, double-check the keyfile path and that the service account has the required IAM roles.
 
-### Run models
+### (optional) Run models
 
 ```bash
 make dbt-run
@@ -351,7 +360,7 @@ make dbt-run
 
 ## 10 — Set up Kestra
 
-> **Running locally without Kestra:** You can also run the pipeline directly from the command line. Edit the date range in `orchestration/local/pipeline.py`, then:
+> **(optional) Running locally without Kestra:** You can also run the pipeline directly from the command line. Edit the date range in `orchestration/local/pipeline.py`, then:
 >
 > ```bash
 > make local-pipeline
@@ -435,8 +444,28 @@ Recommended starting metrics:
 
 ## 15 — Clean up
 
-When you are done, remove the provisioned resources:
+**Stop Kestra**
+
+```bash
+make kestra-down
+```
+
+**Destroy GCP infrastructure** (GCS bucket and BigQuery dataset):
 
 ```bash
 make terraform-destroy
 ```
+
+**Drop the BigQuery external tables** (created manually in step 5, not managed by Terraform):
+
+```sql
+DROP TABLE IF EXISTS `YOUR_DATASET_ID.external_crashes`;
+DROP TABLE IF EXISTS `YOUR_DATASET_ID.external_people`;
+DROP TABLE IF EXISTS `YOUR_DATASET_ID.external_vehicles`;
+```
+
+**Delete the MotherDuck database** — go to [app.motherduck.com](https://app.motherduck.com), open your database, and delete it from the settings.
+
+**Delete the GCP service account** — go to [IAM & Admin → Service Accounts](https://console.cloud.google.com/iam-admin/serviceaccounts) in the GCP console and delete the account created for this project.
+
+**Delete the Looker Studio dashboard** — open the dashboard, click the three-dot menu, and select **Remove**.
