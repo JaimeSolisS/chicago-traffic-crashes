@@ -33,7 +33,7 @@ A daily batch pipeline ingests crash data from the Chicago Data Portal into Moth
 - **Cloud:** Google Cloud Platform (GCP) for storage and data warehousing.
 - **Infrastructure as Code (IaC):** Terraform to provision GCS buckets and BigQuery datasets.
 - **Workflow Orchestration:** Kestra (via Docker) for daily batch scheduling.
-- **Staging Layer:** MotherDuck (DuckDB cloud) for intermediate storage and deduplication.
+- **Staging Warehouse:** MotherDuck (DuckDB cloud) for intermediate storage and deduplication.
 - **Data Lake:** Google Cloud Storage (GCS) — Hive-partitioned Parquet files.
 - **Data Warehouse:** Google BigQuery, with partitioned tables.
 - **Ingestion:** dlt (data load tool) with `rest_api_source` for the Chicago SODA 2.0 API and DuckDB connector for MotherDuck → GCS.
@@ -85,35 +85,54 @@ risk factors (driver condition vs vehicle issues)
 
 ## Prerequisites
 
-- **Git** for cloning the repository
-- **Google Cloud Platform (GCP):** A project with billing enabled and APIs for GCS and BigQuery activated
-- **Terraform** for provisioning infrastructure
-- **Docker** for running Kestra locally
-- **uv** (Python package manager) for running ingestion pipelines
-- **dbt** for running transformations
-- **GCP Credentials:** A service account key (JSON) with access to GCS and BigQuery
-- **MotherDuck account** with a personal access token
+Make sure you have the following installed and configured before starting.
 
 ### Tools
 
-| Tool      | Version | Install                                                                                        |
-| --------- | ------- | ---------------------------------------------------------------------------------------------- |
-| Terraform | ≥ 1.0   | [developer.hashicorp.com/terraform/install](https://developer.hashicorp.com/terraform/install) |
-| Docker    | latest  | [docs.docker.com/get-docker](https://docs.docker.com/get-docker/)                              |
-| Python    | ≥ 3.13  | [python.org/downloads](https://www.python.org/downloads/)                                      |
-| uv        | latest  | `curl -LsSf https://astral.sh/uv/install.sh \| sh`                                             |
+| Tool      | Version | Purpose                      |
+| --------- | ------- | ---------------------------- |
+| Git       | latest  | Clone the repository         |
+| Terraform | >= 1.0  | Provision GCP infrastructure |
+| Docker    | latest  | Run Kestra locally           |
+| Python    | >= 3.11 | Run ingestion pipelines      |
+| uv        | latest  | Python package manager       |
+| dbt       | latest  | Run transformations          |
 
-### Accounts & services
+Install links:
 
-- **GCP project** with billing enabled ([console.cloud.google.com](https://console.cloud.google.com/))
-    - A service account with the following roles:
-        - `roles/storage.admin`
-        - `roles/bigquery.dataOwner`
-    - A JSON key file downloaded for that service account
+- Terraform: https://developer.hashicorp.com/terraform/install
+- Docker: https://docs.docker.com/get-docker/
+- Python: https://www.python.org/downloads/
+- uv: `curl -LsSf https://astral.sh/uv/install.sh | sh`
 
-- **MotherDuck** — sign up at [motherduck.com](https://motherduck.com)
-    - Generate a Personal Access Token (Settings → Access Tokens)
-    - Create a database (Attached Databases → +)
+---
+
+## Required Accounts and Services
+
+### Google Cloud Platform (GCP)
+
+You need:
+
+- A **GCP project** with billing enabled: ([console.cloud.google.com](https://console.cloud.google.com/))
+- The following APIs enabled:
+    - **Cloud Storage API**
+    - **BigQuery API**
+- A **service account** with at least:
+    - `roles/storage.admin`
+    - `roles/bigquery.dataOwner`
+- A downloaded **JSON key file** for that service account
+
+### MotherDuck
+
+You need:
+
+- A MotherDuck account: https://motherduck.com
+- A **Personal Access Token**
+- A database created in MotherDuck
+
+### Optional: GitHub
+
+GitHub is required only if you want Kestra to sync flows and scripts directly from your repository.
 
 ---
 
@@ -142,14 +161,14 @@ chicago-traffic-crashes/
 └── README.md
 ```
 
-## Step 1 — Clone the repository
+## 1 — Clone the repository
 
 ```bash
 git clone <repo-url>
 cd chicago-traffic-crashes
 ```
 
-## Step 2 — Add your GCP service account key
+## 2 — Add your GCP service account key
 
 Place the downloaded JSON key file at:
 
@@ -157,7 +176,7 @@ Place the downloaded JSON key file at:
 keys/gcp_credentials.json
 ```
 
-## Step 3 — Configure environment variables
+## 3 — Configure environment variables
 
 Copy the example file and fill in your values:
 
@@ -176,10 +195,15 @@ cp .env.example .env
 | `MOTHERDUCK_TOKEN`    | MotherDuck Personal Access Token                                 |
 | `MOTHERDUCK_DATABASE` | MotherDuck database name (e.g. `chicago_crashes`)                |
 | `MOTHERDUCK_DATASET`  | Schema inside the database, also used as GCS prefix (e.g. `raw`) |
+| `KESTRA_USERNAME`     |                                                                  |
+| `KESTRA_PASSWORD`     |                                                                  |
 
-## Step 4 — Provision GCP infrastructure
+> [!NOTE]
+> Since the ingestion commands are run from inside ingestion/, the CREDENTIALS path should usually be ../keys/gcp_credentials.json.
 
-Uses Terraform to create the GCS bucket and BigQuery dataset. From the project root:
+## 4 — Provision GCP infrastructure
+
+Uses Terraform to create the GCS bucket and BigQuery dataset.
 
 ```bash
 make terraform-init
@@ -194,24 +218,32 @@ terraform init
 terraform apply -var="project_id=..." -var="bucket_name=..." ...
 ```
 
-This provisions:
+This creates:
 
-- **GCS bucket** — stores raw Parquet files
-- **BigQuery dataset** — for downstream analysis
+- A **GCS bucket** for raw Parquet files
+- A **BigQuery dataset** for downstream analytics
+  Expected result
 
-## Step 5 — Install ingestion dependencies
+After this step, you should be able to confirm:
+
+The bucket exists in GCS
+The dataset exists in BigQuery
+
+## 5 — Install ingestion dependencies
 
 ```bash
 make dlt-sync
 ```
 
-## Step 5.1 (optional) - Add the dlt MCP Server Config
+## 6 (optional) - Add the dlt MCP Server Config
 
 ```bash
 claude mcp add dlt -- uv run --with "dlt[motherduck,gs]" --with "dlt-mcp[search]" python -m dlt_mcp
 ```
 
-## Step 6 — Run the ingestion pipelines
+Skip this step if you do not need MCP integration.
+
+## 7 — Run the ingestion pipelines
 
 Both pipelines default to **yesterday's date** when run with no arguments.
 
@@ -228,6 +260,9 @@ To load a specific date:
 uv run chicago_to_motherduck/pipeline.py 2026-03-05
 ```
 
+Expected result
+The selected day’s data should be loaded into MotherDuck.
+
 ### Stage 2 — MotherDuck → GCS
 
 ```bash
@@ -240,39 +275,61 @@ To export a specific date:
 uv run motherduck_to_gcs/pipeline.py 2026-03-05
 ```
 
-## Step 7 - Create External Tables in BigQuery
-
-In BigQuery run, if you use other dataset names update as required
-
-```sql
-CREATE OR REPLACE EXTERNAL TABLE `chicago_traffic_crashes.external_crashes`
-WITH PARTITION COLUMNS
-OPTIONS (
-  format = 'PARQUET',
-  uris = ['gs://de-zoomcamp-484622-chicago-traffic-crashes/raw/crashes/*'],
-  hive_partition_uri_prefix = 'gs://de-zoomcamp-484622-chicago-traffic-crashes/raw/crashes/'
-);
-
-CREATE OR REPLACE EXTERNAL TABLE `chicago_traffic_crashes.external_people`
-WITH PARTITION COLUMNS
-OPTIONS (
-  format = 'PARQUET',
-  uris = ['gs://de-zoomcamp-484622-chicago-traffic-crashes/raw/people/*'],
-  hive_partition_uri_prefix = 'gs://de-zoomcamp-484622-chicago-traffic-crashes/raw/people/'
-);
-
-
-CREATE OR REPLACE EXTERNAL TABLE `chicago_traffic_crashes.external_vehicles`
-WITH PARTITION COLUMNS
-OPTIONS (
-  format = 'PARQUET',
-  uris = ['gs://de-zoomcamp-484622-chicago-traffic-crashes/raw/vehicles/*'],
-  hive_partition_uri_prefix = 'gs://de-zoomcamp-484622-chicago-traffic-crashes/raw/vehicles/'
-);
+Expected result
+Parquet files should appear in your GCS bucket under the expected prefixes, for example:
 
 ```
+gs://<BUCKET_NAME>/raw/crashes/
+gs://<BUCKET_NAME>/raw/people/
+gs://<BUCKET_NAME>/raw/vehicles/
+```
 
-## Step 8 — Set up dbt (transform)
+## 8 - Create External Tables in BigQuery
+
+Run the following in the BigQuery SQL Editor, replacing:
+
+- `YOUR_DATASET_ID`
+- `YOUR_BUCKET_NAME`
+
+with your own values.
+
+```sql
+CREATE OR REPLACE EXTERNAL TABLE `YOUR_DATASET_ID.external_crashes`
+WITH PARTITION COLUMNS
+OPTIONS (
+  format = 'PARQUET',
+  uris = ['gs://YOUR_BUCKET_NAME/raw/crashes/*'],
+  hive_partition_uri_prefix = 'gs://YOUR_BUCKET_NAME/raw/crashes/'
+);
+
+CREATE OR REPLACE EXTERNAL TABLE `YOUR_DATASET_ID.external_people`
+WITH PARTITION COLUMNS
+OPTIONS (
+  format = 'PARQUET',
+  uris = ['gs://YOUR_BUCKET_NAME/raw/people/*'],
+  hive_partition_uri_prefix = 'gs://YOUR_BUCKET_NAME/raw/people/'
+);
+
+CREATE OR REPLACE EXTERNAL TABLE `YOUR_DATASET_ID.external_vehicles`
+WITH PARTITION COLUMNS
+OPTIONS (
+  format = 'PARQUET',
+  uris = ['gs://YOUR_BUCKET_NAME/raw/vehicles/*'],
+  hive_partition_uri_prefix = 'gs://YOUR_BUCKET_NAME/raw/vehicles/'
+);
+```
+
+Expected result
+
+You should be able to query:
+
+- `external_crashes`
+- `external_people`
+- `external_vehicles`
+
+from your BigQuery dataset.
+
+## 9. Set up dbt
 
 ### Install dbt
 
@@ -282,7 +339,7 @@ pip install dbt-bigquery
 
 ### Configure the dbt profile
 
-Add the following to `~/.dbt/profiles.yml`, substituting values from your `.env`:
+Add this to ~/.dbt/profiles.yml, replacing placeholders with your values:
 
 ```yaml
 chicago_traffic_crashes:
@@ -294,7 +351,7 @@ chicago_traffic_crashes:
             project: YOUR_PROJECT_ID # PROJECT_ID from .env
             dataset: YOUR_DATASET_ID # DATASET_ID from .env
             location: us-central1 # REGION from .env
-            keyfile: /path/to/gcp_credentials.json # CREDENTIALS from .env
+            keyfile: /absolute/path/to/gcp_credentials.json
             threads: 1
 ```
 
@@ -312,15 +369,31 @@ All checks should pass. If BigQuery connection fails, double-check the keyfile p
 make dbt-run
 ```
 
-## Step 9 — Set up Kestra
+Expected result
 
-> **Running locally without Kestra:** The pipeline can also be run directly from the command line. Edit the date range in `orchestration/local/pipeline.py`, then:
->
-> ```bash
-> make local-pipeline
-> ```
+dbt should complete successfully and create transformed models in BigQuery.
 
-From the project root, start Kestra and its backing Postgres database:
+## Running without Kestra
+
+You can run the pipeline locally without orchestration.
+
+Edit the date range in:
+
+```
+orchestration/local/pipeline.py
+```
+
+Then run:
+
+```bash
+make local-pipeline
+```
+
+## Runing with Kestra
+
+# 10. Start Kestra locally
+
+From the project root
 
 ```bash
 make kestra-up
@@ -328,13 +401,15 @@ make kestra-up
 
 Kestra will be available at [localhost:8080](http://localhost:8080).
 
-### Sync flows and scripts from GitHub
+### 11. Sync flows and scripts from GitHub
 
-Before syncing, make sure you have pushed the repository to GitHub — Kestra pulls the flows and scripts directly from your remote branch. Or you can copy and paste in Kestra the flow and the scripts manually.
+If you want Kestra to pull flows and scripts from GitHub, first push your repository to GitHub.
 
-Inside Kestra, create and execute the following flow once to pull the pipeline flow and scripts from your repository. After the initial run it can be triggered manually whenever you push changes.
+In Kestra, go to:
 
-Go to **Flows → + Create** and paste:
+Flows → + Create
+
+Then paste and run:
 
 ```yaml
 id: sync_flows_from_git
@@ -358,9 +433,12 @@ tasks:
       dryRun: false
 ```
 
-For more information see [kestra.io/docs/how-to-guides/syncflows](https://kestra.io/docs/how-to-guides/syncflows).
+For more details see [kestra.io/docs/how-to-guides/syncflows](https://kestra.io/docs/how-to-guides/syncflows).
 
-### Configure the KV Store
+> [!Note]
+> If you do not want to use GitHub sync, you can copy and paste the flows and scripts into Kestra manually.
+
+### 12. Configure the KV Store
 
 Go to **Namespaces → chicago_traffic_crashes → KV Store** and add the following key-value pairs:
 
@@ -376,15 +454,40 @@ Go to **Namespaces → chicago_traffic_crashes → KV Store** and add the follow
 | `MOTHERDUCK_DATASET`   | STRING | MotherDuck schema (e.g. `raw`)          |
 | `MOTHERDUCK_TOKEN`     | STRING | MotherDuck Personal Access Token        |
 
-### Run the pipeline
+> [!Danger]
+> Treat these values as sensitive credentials and store them carefully.
 
-Go to **Flows → chicago_traffic_crashes → chicago_traffic_crashes_flow** and use **Backfill executions** to load historical dates.
+### 13. Run the pipeline in Kestra
 
-**Step 10 Visualize in Looker Studio**
+Go to:
 
-Connect Looker Studio to the dataset in BigQuery and you can create your own the dashboard.
+**Flows → chicago_traffic_crashes → chicago_traffic_crashes_flow**
 
-Step 11 Clean up resources
+Use Backfill executions to load historical dates.
+
+Expected result
+
+Kestra should execute the ingestion and orchestration flow successfully for the selected time range.
+
+### Visualization
+
+### 14 Build dashboards in Looker Studio
+
+Connect Looker Studio to your BigQuery dataset and build dashboards using the transformed dbt models.
+
+Recommended approach:
+
+Use the dbt models instead of the raw external tables when possible
+Start with metrics such as:
+crashes by date
+crashes by location
+contributing causes
+vehicle counts
+people involved by injury severity
+
+### 15 Cleanup
+
+When you are done, remove the provisioned resources:
 
 ```bash
 make terraform-destroy
