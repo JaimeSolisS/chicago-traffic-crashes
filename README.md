@@ -5,7 +5,8 @@ End-to-end data engineering project analyzing traffic crash data from the City o
 ## Table of Contents
 
 - [Overview](#overview)
-- [Technologies Used](#technologies-used)
+- [Problem Statement](#problem-statement)
+- [Infrastructure](#infrastructure)
 - [Architecture](#architecture)
 - [Dashboard](#dashboard)
 - [Setup and Installation](#setup-and-installation)
@@ -16,11 +17,11 @@ End-to-end data engineering project analyzing traffic crash data from the City o
 
 This project, developed as the final submission for the **DE Zoomcamp 2026 cohort**, builds an end-to-end batch data pipeline to process and analyze traffic crash data from the City of Chicago. The pipeline ingests raw crash records daily from the Chicago Data Portal, stages them in MotherDuck, stores them in a data lake on Google Cloud Storage as partitioned Parquet files, transforms them in BigQuery using dbt, and visualizes key insights through a Looker Studio dashboard. The pipeline is orchestrated with Kestra and Google Cloud infrastructure is provisioned with Terraform.
 
-A daily batch pipeline ingests crash data from the Chicago Data Portal into MotherDuck, exports it to Google Cloud Storage as Parquet files, loads it into BigQuery, and applies dbt transformations to produce an analytics-ready mart visualized in Looker Studio. The MotherDuck staging step was intentionally included to practice working with multiple tools across different stages of a pipeline.
+The MotherDuck staging step is not strictly necessary, but was intentionally included to practice working with multiple tools across different stages of a pipeline.
 
 ## Problem Statement
 
-**Problem:** Chicago reports over 100,000 traffic crashes each year, but only a portion result in fatal or incapacitating injuries that carry significant human and economic impact. Without an automated pipeline, it is difficult to continuously process the three related datasets (crashes, people, vehicles), deduplicate records, and surface actionable patterns in crash severity.
+Chicago reports over 100,000 traffic crashes each year, but only a portion result in fatal or incapacitating injuries that carry significant human and economic impact. Without an automated pipeline, it is difficult to continuously process the three related datasets (crashes, people, vehicles), deduplicate records, and surface actionable patterns in crash severity.
 
 ## Infrastructure
 
@@ -48,7 +49,7 @@ The pipeline follows a daily batch processing workflow:
     - **Chicago API → MotherDuck:** dlt hits the Chicago SODA 2.0 API with offset-based pagination (1,000 rows/page), filtering by date (Chicago timezone → UTC). Records are deduplicated via merge disposition on primary keys (`crash_record_id`, `crash_unit_id`, `person_id`) and loaded into MotherDuck across three tables: `crashes`, `vehicles`, and `people`.
     - **MotherDuck → GCS:** A second dlt pipeline queries MotherDuck via DuckDB, fetches Arrow tables partitioned by `crash_date`, and writes Hive-partitioned Parquet files to GCS (`gs://BUCKET/DATASET/crashes/date=YYYY-MM-DD/`). Existing partitions are deleted before writing, making the step idempotent.
 
-    See [Ingestion](infrastructure/README.md) for more details.
+    See [Ingestion](ingestion/README.md) for more details.
 
 2. **Loading (GCS → BigQuery):** Raw Parquet files are loaded from GCS into BigQuery staging tables with partitioning for query optimization.
 3. **Transformation (dbt):** dbt models clean, join, and aggregate the three datasets into a production mart in BigQuery, computing crash severity flags, time-of-day features, and location aggregations.
@@ -57,109 +58,126 @@ The pipeline follows a daily batch processing workflow:
 
 4. **Visualization (Looker Studio):** The mart is connected to a Looker Studio dashboard surfacing crash severity trends and contributing factors.
 5. **Orchestration (Kestra):** Kestra, running via Docker, schedules and orchestrates all pipeline stages daily.
-   See [Orchestration](orchestration/README.md) for more details.
+
+    See [Orchestration](orchestration/README.md) for more details.
+
 6. **Infrastructure (Terraform):** The GCS bucket and BigQuery datasets are provisioned with Terraform for reproducibility.
-   See [Infrastructure](infrastructure/README.md) for more details.
+
+    See [Infrastructure](infrastructure/README.md) for more details.
 
 ### Architecture Diagram
 
 ![Chicago Traffic Crashes Data Pipeline Architecture](img/ArchitectureDiagram.png)
 
-## Crash Severity Risk Dashboard
+## Dashboard
 
 This dashboard analyzes when severe traffic crashes are most likely to occur and the key factors associated with more serious outcomes.
 
 A severe crash is defined as any crash that results in:
 
-at least one fatal injury, or
-at least one incapacitating injury (serious injuries that prevent normal activity, such as broken bones)
+- At least one fatal injury, or
+- At least one incapacitating injury (serious injuries that prevent normal activity, such as broken bones)
 
 The dashboard combines data from crashes, people, and vehicles to provide a more complete view of:
 
-time patterns (when crashes happen)
-contributing causes (what led to the crash)
-environmental conditions (weather and road surface)
-risk factors (driver condition vs vehicle issues)
+- Time patterns (when crashes happen)
+- Contributing causes (what led to the crash)
+- Environmental conditions (weather and road surface)
+- Risk factors (driver condition vs vehicle issues)
 
 ## Setup and Installation
 
-## Prerequisites
+### Prerequisites
 
 Make sure you have the following installed and configured before starting.
 
-### Tools
+#### Tools
 
 | Tool      | Version | Purpose                      |
 | --------- | ------- | ---------------------------- |
 | Git       | latest  | Clone the repository         |
-| Terraform | >= 1.0  | Provision GCP infrastructure |
+| Terraform | ≥ 1.0   | Provision GCP infrastructure |
 | Docker    | latest  | Run Kestra locally           |
-| Python    | >= 3.11 | Run ingestion pipelines      |
+| Python    | ≥ 3.13  | Run ingestion pipelines      |
 | uv        | latest  | Python package manager       |
 | dbt       | latest  | Run transformations          |
 
 Install links:
 
-- Terraform: https://developer.hashicorp.com/terraform/install
-- Docker: https://docs.docker.com/get-docker/
-- Python: https://www.python.org/downloads/
+- Terraform: [developer.hashicorp.com/terraform/install](https://developer.hashicorp.com/terraform/install)
+- Docker: [docs.docker.com/get-docker](https://docs.docker.com/get-docker/)
+- Python: [python.org/downloads](https://www.python.org/downloads/)
 - uv: `curl -LsSf https://astral.sh/uv/install.sh | sh`
 
----
+#### Accounts and services
 
-## Required Accounts and Services
+**Google Cloud Platform (GCP)**
 
-### Google Cloud Platform (GCP)
+- A GCP project with billing enabled: [console.cloud.google.com](https://console.cloud.google.com/)
+- The following APIs enabled: Cloud Storage API, BigQuery API
+- A service account with `roles/storage.admin` and `roles/bigquery.dataOwner`
+- A downloaded JSON key file for that service account
 
-You need:
+**MotherDuck**
 
-- A **GCP project** with billing enabled: ([console.cloud.google.com](https://console.cloud.google.com/))
-- The following APIs enabled:
-    - **Cloud Storage API**
-    - **BigQuery API**
-- A **service account** with at least:
-    - `roles/storage.admin`
-    - `roles/bigquery.dataOwner`
-- A downloaded **JSON key file** for that service account
-
-### MotherDuck
-
-You need:
-
-- A MotherDuck account: https://motherduck.com
-- A **Personal Access Token**
+- A MotherDuck account: [motherduck.com](https://motherduck.com)
+- A Personal Access Token
 - A database created in MotherDuck
 
-### Optional: GitHub
-
-GitHub is required only if you want Kestra to sync flows and scripts directly from your repository.
-
----
+**GitHub** (optional — required only for Kestra Git sync)
 
 ### Repository Structure
 
 ```
 chicago-traffic-crashes/
-├── ingestion/
+├── ingestion/                              # dlt ingestion pipelines
 │   ├── chicago_to_motherduck/
-│   │   ├── source.py          # dlt rest_api_source for Chicago SODA API
-│   │   └── pipeline.py        # Stage 1: Chicago API → MotherDuck
+│   │   ├── source.py                       # dlt rest_api_source for Chicago SODA API
+│   │   └── pipeline.py                     # Stage 1: Chicago API → MotherDuck
 │   ├── motherduck_to_gcs/
-│   │   └── pipeline.py        # Stage 2: MotherDuck → GCS Parquet
-│   └── pyproject.toml
-├── infrastructure/
-│   ├── gcs/                   # Terraform module: GCS bucket
-│   ├── bigquery/              # Terraform module: BigQuery dataset
-│   └── README.md
-├── transform/                 # dbt project targeting BigQuery
-│   └── README.md
+│   │   └── pipeline.py                     # Stage 2: MotherDuck → GCS Parquet
+│   └── pyproject.toml                      # Python dependencies
+├── infrastructure/                         # Terraform IaC
+│   ├── gcs/                               # Terraform module: GCS bucket
+│   ├── bigquery/                          # Terraform module: BigQuery dataset
+│   ├── main.tf                            # Root module wiring
+│   ├── variables.tf                       # Input variables
+│   ├── outputs.tf                         # Output values
+│   └── providers.tf                       # GCP provider config
+├── orchestration/
+│   ├── kestra/
+│   │   ├── docker-compose.yml             # Kestra + Postgres services
+│   │   ├── flows/
+│   │   │   └── chicago_traffic_crashes_pipeline.yaml  # Daily pipeline flow
+│   │   └── scripts/                       # Pipeline scripts synced to Kestra
+│   │       ├── chicago_to_motherduck/
+│   │       └── motherduck_to_gcs/
+│   └── local/
+│       └── pipeline.py                    # Local runner (no orchestrator needed)
+├── transform/                             # dbt project targeting BigQuery
+│   ├── models/
+│   │   ├── raw/                           # External table references
+│   │   ├── staging/                       # Cleaned, typed models
+│   │   ├── intermediate/                  # Joined/aggregated models
+│   │   └── marts/                         # Final analytics models
+│   ├── seeds/
+│   │   └── PoliceBeat.csv                 # Reference data for beat lookups
+│   └── dbt_project.yml                    # dbt project config
+├── img/
+│   └── ArchitectureDiagram.png            # Pipeline architecture diagram
 ├── keys/
-│   └── gcp_credentials.json   # GCP service account key (not committed)
-├── .env                       # Environment variables (copy from .env.example)
-├── .env.example
-├── Makefile
+│   └── gcp_credentials.json              # GCP service account key (not committed)
+├── .env                                   # Environment variables (copy from .env.example)
+├── .env.example                           # Environment variable template
+├── Makefile                               # Shortcut commands for all pipeline stages
+├── SETUP.md                               # Step-by-step setup guide
 └── README.md
 ```
+
+### Steps to Run
+
+> [!NOTE]
+> All `make` commands must be run from the project root.
 
 ## 1 — Clone the repository
 
@@ -195,22 +213,20 @@ cp .env.example .env
 | `MOTHERDUCK_TOKEN`    | MotherDuck Personal Access Token                                 |
 | `MOTHERDUCK_DATABASE` | MotherDuck database name (e.g. `chicago_crashes`)                |
 | `MOTHERDUCK_DATASET`  | Schema inside the database, also used as GCS prefix (e.g. `raw`) |
-| `KESTRA_USERNAME`     |                                                                  |
-| `KESTRA_PASSWORD`     |                                                                  |
+| `KESTRA_USERNAME`     | Kestra admin username                                            |
+| `KESTRA_PASSWORD`     | Kestra admin password                                            |
 
 > [!NOTE]
-> Since the ingestion commands are run from inside ingestion/, the CREDENTIALS path should usually be ../keys/gcp_credentials.json.
+> Since the ingestion commands are run from inside `ingestion/`, the `CREDENTIALS` path should usually be `../keys/gcp_credentials.json`.
 
 ## 4 — Provision GCP infrastructure
-
-Uses Terraform to create the GCS bucket and BigQuery dataset.
 
 ```bash
 make terraform-init
 make terraform-apply
 ```
 
-Or run Terraform directly from `infrastructure/`:
+Or run Terraform directly from `infrastructure/` if preferred:
 
 ```bash
 cd infrastructure
@@ -218,16 +234,7 @@ terraform init
 terraform apply -var="project_id=..." -var="bucket_name=..." ...
 ```
 
-This creates:
-
-- A **GCS bucket** for raw Parquet files
-- A **BigQuery dataset** for downstream analytics
-  Expected result
-
-After this step, you should be able to confirm:
-
-The bucket exists in GCS
-The dataset exists in BigQuery
+This creates a GCS bucket for raw Parquet files and a BigQuery dataset for downstream analytics.
 
 ## 5 — Install ingestion dependencies
 
@@ -235,7 +242,7 @@ The dataset exists in BigQuery
 make dlt-sync
 ```
 
-## 6 (optional) - Add the dlt MCP Server Config
+## 6 (optional) — Add the dlt MCP Server config
 
 ```bash
 claude mcp add dlt -- uv run --with "dlt[motherduck,gs]" --with "dlt-mcp[search]" python -m dlt_mcp
@@ -252,46 +259,29 @@ Both pipelines default to **yesterday's date** when run with no arguments.
 ```bash
 cd ingestion
 uv run chicago_to_motherduck/pipeline.py
+uv run chicago_to_motherduck/pipeline.py 2026-03-05  # specific date
 ```
 
-To load a specific date:
-
-```bash
-uv run chicago_to_motherduck/pipeline.py 2026-03-05
-```
-
-Expected result
-The selected day’s data should be loaded into MotherDuck.
+The selected day's data will be loaded into MotherDuck across three tables: `crashes`, `vehicles`, and `people`.
 
 ### Stage 2 — MotherDuck → GCS
 
 ```bash
 uv run motherduck_to_gcs/pipeline.py
+uv run motherduck_to_gcs/pipeline.py 2026-03-05  # specific date
 ```
 
-To export a specific date:
-
-```bash
-uv run motherduck_to_gcs/pipeline.py 2026-03-05
-```
-
-Expected result
-Parquet files should appear in your GCS bucket under the expected prefixes, for example:
+Parquet files will appear in your GCS bucket under:
 
 ```
-gs://<BUCKET_NAME>/raw/crashes/
-gs://<BUCKET_NAME>/raw/people/
-gs://<BUCKET_NAME>/raw/vehicles/
+gs://<BUCKET_NAME>/raw/crashes/date=YYYY-MM-DD/
+gs://<BUCKET_NAME>/raw/people/date=YYYY-MM-DD/
+gs://<BUCKET_NAME>/raw/vehicles/date=YYYY-MM-DD/
 ```
 
-## 8 - Create External Tables in BigQuery
+## 8 — Create external tables in BigQuery
 
-Run the following in the BigQuery SQL Editor, replacing:
-
-- `YOUR_DATASET_ID`
-- `YOUR_BUCKET_NAME`
-
-with your own values.
+Run the following in the BigQuery SQL Editor, replacing `YOUR_DATASET_ID` and `YOUR_BUCKET_NAME` with your values:
 
 ```sql
 CREATE OR REPLACE EXTERNAL TABLE `YOUR_DATASET_ID.external_crashes`
@@ -319,17 +309,7 @@ OPTIONS (
 );
 ```
 
-Expected result
-
-You should be able to query:
-
-- `external_crashes`
-- `external_people`
-- `external_vehicles`
-
-from your BigQuery dataset.
-
-## 9. Set up dbt
+## 9 — Set up dbt
 
 ### Install dbt
 
@@ -339,7 +319,7 @@ pip install dbt-bigquery
 
 ### Configure the dbt profile
 
-Add this to ~/.dbt/profiles.yml, replacing placeholders with your values:
+Add this to `~/.dbt/profiles.yml`, replacing placeholders with your values:
 
 ```yaml
 chicago_traffic_crashes:
@@ -369,31 +349,15 @@ All checks should pass. If BigQuery connection fails, double-check the keyfile p
 make dbt-run
 ```
 
-Expected result
+## 10 — Set up Kestra
 
-dbt should complete successfully and create transformed models in BigQuery.
+> **Running locally without Kestra:** You can also run the pipeline directly from the command line. Edit the date range in `orchestration/local/pipeline.py`, then:
+>
+> ```bash
+> make local-pipeline
+> ```
 
-## Running without Kestra
-
-You can run the pipeline locally without orchestration.
-
-Edit the date range in:
-
-```
-orchestration/local/pipeline.py
-```
-
-Then run:
-
-```bash
-make local-pipeline
-```
-
-## Runing with Kestra
-
-# 10. Start Kestra locally
-
-From the project root
+Start Kestra locally:
 
 ```bash
 make kestra-up
@@ -401,15 +365,11 @@ make kestra-up
 
 Kestra will be available at [localhost:8080](http://localhost:8080).
 
-### 11. Sync flows and scripts from GitHub
+## 11 — Sync flows and scripts from GitHub
 
-If you want Kestra to pull flows and scripts from GitHub, first push your repository to GitHub.
+Before syncing, push your repository to GitHub — Kestra pulls flows and scripts directly from your remote branch.
 
-In Kestra, go to:
-
-Flows → + Create
-
-Then paste and run:
+In Kestra, go to **Flows → + Create**, then paste and execute:
 
 ```yaml
 id: sync_flows_from_git
@@ -435,10 +395,10 @@ tasks:
 
 For more details see [kestra.io/docs/how-to-guides/syncflows](https://kestra.io/docs/how-to-guides/syncflows).
 
-> [!Note]
+> [!NOTE]
 > If you do not want to use GitHub sync, you can copy and paste the flows and scripts into Kestra manually.
 
-### 12. Configure the KV Store
+## 12 — Configure the KV Store
 
 Go to **Namespaces → chicago_traffic_crashes → KV Store** and add the following key-value pairs:
 
@@ -454,38 +414,26 @@ Go to **Namespaces → chicago_traffic_crashes → KV Store** and add the follow
 | `MOTHERDUCK_DATASET`   | STRING | MotherDuck schema (e.g. `raw`)          |
 | `MOTHERDUCK_TOKEN`     | STRING | MotherDuck Personal Access Token        |
 
-> [!Danger]
+> [!WARNING]
 > Treat these values as sensitive credentials and store them carefully.
 
-### 13. Run the pipeline in Kestra
+## 13 — Run the pipeline in Kestra
 
-Go to:
+Go to **Flows → chicago_traffic_crashes → chicago_traffic_crashes_flow** and use **Backfill executions** to load historical dates.
 
-**Flows → chicago_traffic_crashes → chicago_traffic_crashes_flow**
-
-Use Backfill executions to load historical dates.
-
-Expected result
-
-Kestra should execute the ingestion and orchestration flow successfully for the selected time range.
-
-### Visualization
-
-### 14 Build dashboards in Looker Studio
+## 14 — Build dashboards in Looker Studio
 
 Connect Looker Studio to your BigQuery dataset and build dashboards using the transformed dbt models.
 
-Recommended approach:
+Recommended starting metrics:
 
-Use the dbt models instead of the raw external tables when possible
-Start with metrics such as:
-crashes by date
-crashes by location
-contributing causes
-vehicle counts
-people involved by injury severity
+- Crashes by date
+- Crashes by location
+- Contributing causes
+- Vehicle counts
+- People involved by injury severity
 
-### 15 Cleanup
+## 15 — Clean up
 
 When you are done, remove the provisioned resources:
 
