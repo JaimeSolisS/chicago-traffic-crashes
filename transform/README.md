@@ -20,7 +20,7 @@ Partitioned by `crash_date` (DATE, day granularity).
 | `raw_vehicle` | `external_vehicles` | `crash_unit_id`   |
 | `raw_people`  | `external_people`   | `person_id`       |
 
-> The upstream external tables (`external_crashes`, `external_vehicles`, `external_people`) are partitioned by `partition_date` — a `DATE` column derived from the Hive partition path (`date=YYYY-MM-DD`) written by the ingestion pipeline.
+> The upstream external tables (`external_crashes`, `external_vehicles`, `external_people`) are partitioned by `partition_date` — a `DATE` column derived from the Hive partition path (`partition_date=YYYY-MM-DD`) written by the ingestion pipeline.
 
 ### staging/
 
@@ -64,4 +64,4 @@ dbt run --full-refresh             # rebuild all incremental models from scratch
 
 ## Setup
 
-See [SETUP.md](../SETUP.md) (Step 8) for dbt installation, profile configuration, and connection verification.
+See [README.md](../README.md#9-optional--set-up-dbt) (Step 9) for dbt installation, profile configuration, and connection verification.

@@ -48,4 +48,6 @@ terraform apply -var="project_id=..." -var="bucket_name=..." ...
 terraform destroy -var="project_id=..." -var="bucket_name=..." ...
 ```
 
-> For prerequisites and environment variable setup, see [SETUP.md](../SETUP.md).
+## Setup
+
+For prerequisites and environment variable setup, see [README.md](../README.md#4--provision-gcp-infrastructure) (Step 4).

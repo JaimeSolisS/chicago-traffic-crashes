@@ -38,8 +38,6 @@ ingestion/
     └── pipeline.py      # MotherDuck → GCS Parquet
 ```
 
-> For prerequisites and full setup, see [SETUP.md](../SETUP.md).
-
 ## Running the pipelines
 
 Both pipelines default to **yesterday's date** when run with no arguments.
@@ -171,3 +169,7 @@ All data comes from the [Chicago Data Portal](https://data.cityofchicago.org) vi
 | Traffic Crashes — Crashes  | `https://data.cityofchicago.org/resource/85ca-t3if.json` |
 | Traffic Crashes — Vehicles | `https://data.cityofchicago.org/resource/68nd-jvt3.json` |
 | Traffic Crashes — People   | `https://data.cityofchicago.org/resource/u6pd-qa9d.json` |
+
+## Setup
+
+See [README.md](../README.md#6-optional--install-dlthub-ingestion-dependencies) (Step 6) for dependency installation and pipeline execution.
