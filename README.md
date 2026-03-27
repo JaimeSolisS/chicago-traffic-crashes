@@ -9,9 +9,7 @@
 - [Infrastructure](#infrastructure)
 - [Architecture](#architecture)
 - [Dashboard](#dashboard)
-- [Setup and Installation](#setup-and-installation)
-- [Challenges and Learnings](#challenges-and-learnings)
-- [Future Improvements](#future-improvements)
+- [Setup ](#setup)
 
 ## Overview
 
@@ -91,7 +89,7 @@ Access the live dashboard here: [Looker Studio](https://lookerstudio.google.com/
 
 ![Dashboard screenshot](img/dashboard.png)
 
-## Setup and Installation
+## Setup
 
 ### Prerequisites
 
