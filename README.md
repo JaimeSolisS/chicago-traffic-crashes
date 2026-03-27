@@ -19,9 +19,11 @@ This project, developed as the final submission for the **DE Zoomcamp 2026 cohor
 
 The MotherDuck staging step is not strictly necessary, but was intentionally included to practice working with multiple tools across different stages of a pipeline.
 
+My primary experience is with AWS, so this project was a great opportunity to step outside that zone, explore a different set of tools and cloud services, and ultimately broaden my data engineering skill set.
+
 ### Problem Statement
 
-Chicago reports over 100,000 traffic crashes each year, but only a portion result in fatal or incapacitating injuries that carry significant human and economic impact. Without an automated pipeline, it is difficult to continuously process the three related datasets (crashes, people, vehicles), deduplicate records, and surface actionable patterns in crash severity.
+Chicago reports over 100,000 traffic crashes each year, but only a portion result in fatal or incapacitating injuries that carry significant human and economic impact. Without an automated pipeline, it is difficult to continuously process the three related datasets (crashes, people, vehicles), deduplicate records, and surface actionable patterns in crash severity. The data in this project covers crash records from 2021 through mid-March 2026.
 
 ## Infrastructure
 
@@ -47,11 +49,11 @@ The pipeline follows a daily batch processing workflow:
 
 1. **Ingestion (dltHub):**
     - **Chicago API → MotherDuck:** dlt hits the Chicago SODA 2.0 API with offset-based pagination (1,000 rows/page), filtering by date (Chicago timezone → UTC). Records are deduplicated via merge disposition on primary keys (`crash_record_id`, `crash_unit_id`, `person_id`) and loaded into MotherDuck across three tables: `crashes`, `vehicles`, and `people`.
-    - **MotherDuck → GCS:** A second dlt pipeline queries MotherDuck via DuckDB, fetches Arrow tables partitioned by `crash_date`, and writes Hive-partitioned Parquet files to GCS (`gs://BUCKET/DATASET/crashes/date=YYYY-MM-DD/`). Existing partitions are deleted before writing, making the step idempotent.
+    - **MotherDuck → GCS:** A second dlt pipeline queries MotherDuck via DuckDB, fetches Arrow tables partitioned by `crash_date`, and writes Hive-partitioned Parquet files to GCS (`gs://BUCKET/DATASET/crashes/partition_date=YYYY-MM-DD/`). Existing partitions are deleted before writing, making the step idempotent.
 
     See [Ingestion](ingestion/) for more details.
 
-2. **Loading (GCS → BigQuery):** Raw Parquet files are loaded from GCS into BigQuery staging tables with partitioning for query optimization.
+2. **Loading (GCS → BigQuery):** Raw Parquet files are loaded from GCS into BigQuery staging tables partitioned by `crash_date`. Partitioning ensures that queries filtered by date only scan the relevant partitions rather than the entire table, significantly reducing the amount of data processed and improving query performance and cost efficiency — especially important as the dataset grows over time.
 3. **Transformation (dbt):** dbt models clean, join, and aggregate the three datasets into a production mart in BigQuery, computing crash severity flags, time-of-day features, and location aggregations.
 
     See [Transform](transform/) for more details.
