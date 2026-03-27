@@ -1,6 +1,6 @@
-# 🚦 Chicago Traffic Crashes
+# Chicago Traffic Crashes Data Pipeline
 
-> End-to-end data engineering pipeline for analyzing traffic crash severity across Chicago — from raw API data to an interactive Looker Studio dashboard.
+![Crash Logo](img/crash.png)
 
 ## Table of Contents
 
@@ -15,7 +15,7 @@
 
 ## Overview
 
-This project, developed as the final submission for the **DE Zoomcamp 2026 cohort**, builds an end-to-end batch data pipeline to process and analyze traffic crash data from the City of Chicago. The pipeline ingests raw crash records daily from the [Chicago Data Portal](https://data.cityofchicago.org) via the SODA 2.0 API, stages them in MotherDuck, stores them in a data lake on Google Cloud Storage as partitioned Parquet files, transforms them in BigQuery using dbt, and visualizes key insights through a Looker Studio dashboard. The pipeline is orchestrated with Kestra and Google Cloud infrastructure is provisioned with Terraform.
+This project, developed as the final submission for the [DE Zoomcamp 2026](https://github.com/DataTalksClub/data-engineering-zoomcamp) by [DataTalks.Club](https://datatalks.club/), builds an end-to-end batch data pipeline to process and analyze traffic crash data from the City of Chicago. The pipeline ingests raw crash records daily from the [Chicago Data Portal](https://data.cityofchicago.org) via the SODA 2.0 API, stages them in MotherDuck, stores them in a data lake on Google Cloud Storage as partitioned Parquet files, transforms them in BigQuery using dbt, and visualizes key insights through a Looker Studio dashboard. The pipeline is orchestrated with Kestra and Google Cloud infrastructure is provisioned with Terraform.
 
 The MotherDuck staging step is not strictly necessary, but was intentionally included to practice working with multiple tools across different stages of a pipeline.
 
@@ -138,18 +138,18 @@ Install links:
 chicago-traffic-crashes/
 ├── ingestion/                              # dlt ingestion pipelines
 │   ├── chicago_to_motherduck/
-│   │   ├── source.py                       # dlt rest_api_source for Chicago SODA API
+│   │   ├── source.py
 │   │   └── pipeline.py                     # Stage 1: Chicago API → MotherDuck
 │   ├── motherduck_to_gcs/
 │   │   └── pipeline.py                     # Stage 2: MotherDuck → GCS Parquet
-│   └── pyproject.toml                      # Python dependencies
+│   └── pyproject.toml
 ├── infrastructure/                         # Terraform IaC
-│   ├── gcs/                               # Terraform module: GCS bucket
-│   ├── bigquery/                          # Terraform module: BigQuery dataset
-│   ├── main.tf                            # Root module wiring
-│   ├── variables.tf                       # Input variables
-│   ├── outputs.tf                         # Output values
-│   └── providers.tf                       # GCP provider config
+│   ├── gcs/
+│   ├── bigquery/
+│   ├── main.tf
+│   ├── variables.tf
+│   ├── outputs.tf
+│   └── providers.tf
 ├── orchestration/
 │   ├── kestra/
 │   │   ├── docker-compose.yml             # Kestra + Postgres services
@@ -160,23 +160,23 @@ chicago-traffic-crashes/
 │   │       └── motherduck_to_gcs/
 │   └── local/
 │       └── pipeline.py                    # Local runner (no orchestrator needed)
-├── transform/                             # dbt project targeting BigQuery
+├── transform/                             # dbt project
 │   ├── models/
-│   │   ├── raw/                           # External table references
-│   │   ├── staging/                       # Cleaned, typed models
-│   │   ├── intermediate/                  # Joined/aggregated models
-│   │   └── marts/                         # Final analytics models
+│   │   ├── raw/
+│   │   ├── staging/
+│   │   ├── intermediate/
+│   │   └── marts/
 │   ├── seeds/
-│   │   └── PoliceBeat.csv                 # Reference data for beat lookups
-│   └── dbt_project.yml                    # dbt project config
+│   │   └── PoliceBeat.csv
+│   └── dbt_project.yml
 ├── img/
-│   └── ArchitectureDiagram.png            # Pipeline architecture diagram
+│   ├── dashboard.png
+    └── diagram.png
 ├── keys/
 │   └── gcp_credentials.json              # GCP service account key (not committed)
-├── .env                                   # Environment variables (copy from .env.example)
-├── .env.example                           # Environment variable template
+├── .env                                  # Environment variables (copy from .env.example)
+├── .env.example
 ├── Makefile                               # Shortcut commands for all pipeline stages
-├── SETUP.md                               # Step-by-step setup guide
 └── README.md
 ```
 
@@ -471,3 +471,7 @@ DROP TABLE IF EXISTS `YOUR_DATASET_ID.external_vehicles`;
 **Delete the GCP service account** — go to [IAM & Admin → Service Accounts](https://console.cloud.google.com/iam-admin/serviceaccounts) in the GCP console and delete the account created for this project.
 
 **Delete the Looker Studio dashboard** — open the dashboard, click the three-dot menu, and select **Remove**.
+
+## Contact Information
+
+Email: hello@jaimesolis.dev
